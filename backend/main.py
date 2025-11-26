@@ -40,3 +40,4 @@ async def websocket_endpoint(ws: WebSocket):
             "timestamp": datetime.datetime.now().isoformat(),
             "time_elapsed": time_elapsed.total_seconds()
         })
+    sequence = 0
