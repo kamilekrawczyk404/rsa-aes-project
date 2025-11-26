@@ -2,38 +2,11 @@ import asyncio
 import datetime
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import HTMLResponse
+import psutil
 
 app = FastAPI()
-#na razie prosty html poki frontu nie ma
-html = """
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Test</title>
-</head>
-<body>
-<h1>Dane</h1>
-<button id="start">Start</button>
-<div id="output"></div>
 
-<script>
-let ws;
-document.getElementById("start").onclick = () => {
-    ws = new WebSocket("ws://localhost:8080/ws");
-    ws.onmessage = (event) => {
-        document.getElementById("output").textContent = event.data;
-    };
-};
-</script>
-</body>
-</html>
-"""
-
-@app.get("/")
-async def get():
-    return HTMLResponse(html)
-
+#zamiast tego w pozniejszym czasie funkcja szyfrujaca
 async def przykladowy_timer():
     await asyncio.sleep(5)
     return 1
@@ -41,9 +14,29 @@ async def przykladowy_timer():
 @app.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
+
     timer = asyncio.create_task(przykladowy_timer())
+    sequence = 0
+    task_start = datetime.datetime.now()
     while not timer.done():
-        data = {"value": datetime.datetime.now().isoformat()}
-        await ws.send_json(data)
+        current_usage_package = {
+            "type" : "status",
+            "sequence":  sequence,
+            "timestamp": datetime.datetime.now().isoformat(),
+            "data":{
+                "cpu_usage_percent": psutil.cpu_percent(),
+                "mem_total": psutil.virtual_memory().total,
+                "mem_usage": psutil.virtual_memory().used,
+                "mem_usage_percent": psutil.virtual_memory().percent
+            }
+        }
+        await ws.send_json(current_usage_package)
+        sequence += 1
         await asyncio.sleep(0.2)
-    await ws.send_json({"status": "finished"})
+    time_elapsed = datetime.datetime.now() - task_start
+    await ws.send_json({
+            "type" : "summary",
+            "sequence":  sequence,
+            "timestamp": datetime.datetime.now().isoformat(),
+            "time_elapsed": time_elapsed.total_seconds()
+        })
