@@ -22,7 +22,7 @@ const Sidebar = ({ handleWidthState: { isWide, setIsWide } }: SidebarProps) => {
         ...defaultTransition(isWide),
       }}
       className={
-        "h-[calc(100dvh-1rem)] fixed left-0 top-0 bg-slate-50 flex flex-col z-10 gap-4 m-3 rounded-lg overflow-hidden"
+        "sm:h-[calc(100dvh-1.5rem)] h-[calc(100dvh-1rem)] fixed left-0 top-0 bg-slate-50 flex flex-col z-10 gap-4 sm:m-3 m-2 rounded-lg overflow-hidden"
       }
     >
       <div className={"flex gap-4 justify-between items-center w-full p-3"}>

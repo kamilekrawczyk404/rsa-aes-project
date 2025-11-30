@@ -1,23 +1,33 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Sidebar from "../components/Sidebar.tsx";
 import { Outlet } from "react-router-dom";
 import { motion } from "framer-motion";
 import { defaultTransition } from "../framer/transitions.ts";
+import useIsMobile from "../hooks/useIsMobile.ts";
 
 const DashboardLayout = () => {
+  const isMobile = useIsMobile();
   const [isWide, setIsWide] = useState(true);
 
+  const shouldBeWide = !isMobile && isWide;
+
   return (
-    <div className={"min-h-screen tracking-tight bg-slate-300/50 !w-screen"}>
-      <Sidebar handleWidthState={{ isWide, setIsWide }} />
+    <div className={"relative min-h-screen tracking-tight !w-screen"}>
+      <Sidebar handleWidthState={{ isWide: shouldBeWide, setIsWide }} />
+
       <motion.main
         initial={false}
-        animate={{ marginLeft: isWide ? "17rem" : "5rem" }}
-        transition={defaultTransition(isWide)}
-        className={"p-3 min-h-screen min-w-[calc(100vw-18rem)]"}
+        animate={{
+          marginLeft: shouldBeWide ? "17rem" : isMobile ? "4.5rem" : "4.75rem",
+        }}
+        transition={defaultTransition(shouldBeWide)}
+        className={
+          "relative sm:p-3 p-2 h-[calc(100dvh)] min-w-[calc(100vw-18rem)] flex"
+        }
       >
         <Outlet />
       </motion.main>
+
       <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-neon-aes/5 via-background to-background"></div>
     </div>
   );
