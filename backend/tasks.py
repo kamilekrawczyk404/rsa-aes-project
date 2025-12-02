@@ -1,8 +1,8 @@
 import psutil
 import datetime
 import asyncio
-
-
+import os
+from typing import Dict, Optional
 
 #zamiast tego w pozniejszym czasie funkcja szyfrujaca
 async def przykladowy_timer():
@@ -52,7 +52,7 @@ async def send_status(ws, func):
 
 #funkcja która działa po kliknięciu start, wywoluje funkcje rozpoczynajaca szyfrowanie,
 #najpierw normalne pozniej pro, nasluchuje cancela czyli przerwania szyfrowania i wysylania danych
-async def run_with_status(ws, enc_mode):
+async def run_with_status(ws, enc_mode,file_path, original_filename):
     try:
         await ws.send_json({"type": "enc_mode", "value": enc_mode})
         normal_func = ALGORITHMS[enc_mode]["normal"]
@@ -69,3 +69,14 @@ async def run_with_status(ws, enc_mode):
     except asyncio.CancelledError:
         await ws.send_json({"type": "cancelled"})
         raise
+
+#funckja do czyszczenia plikow z dysku
+def cleanup_file_logic(file_id: Optional[str], storage: Dict[str, Dict[str, str]]):
+    if file_id and file_id in storage:
+        file_info = storage.pop(file_id)
+        file_path = file_info["path"]
+        try:
+            os.remove(file_path)
+            print(f"Usunięto tymczasowy plik: {file_path} (ID: {file_id})")
+        except OSError as e:
+            print(f"Błąd podczas usuwania pliku {file_path}: {e}")
