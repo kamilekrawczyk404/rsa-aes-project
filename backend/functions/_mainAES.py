@@ -1,13 +1,14 @@
 import _key_expansion
 import _galuaMath
 
-def main():
+def main(inputText, key):
     #expandedKey = _key_expansion.getExpandedKey(0x3f7a9c12b4e6d09f5a2c7e8b1d4f6032)
-    expandedKey = _key_expansion.getExpandedKey(0x41623323375879394c70517221325a26)
-
+    #expandedKey = _key_expansion.getExpandedKey(0x41623323375879394c70517221325a26)
+    expandedKey = _key_expansion.getExpandedKey(key)
+    inputBytes = inputText
     #inputText = 0x69bc1c9fea029ebb23cb2164d75ef4be
-    inputText = 0x6162636465666768696a6b6c6d6e6f70
-    inputBytes = inputText.to_bytes(16, 'big')
+    #inputText = 0x6162636465666768696a6b6c6d6e6f70
+    #inputBytes = inputText.to_bytes(16, 'big')
     textMatrix = [[0 for _ in range(4)] for _ in range(4)]
     for i in range(4): # dzielę tekst na tablicę 4 x 4 z pojedynczymi bajtami
       for j in range(4):
@@ -60,6 +61,7 @@ def main():
 
     for row in textMatrix:
         print([hex(b) for b in row])
+    return textMatrix
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+#    main()
