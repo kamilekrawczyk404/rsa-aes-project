@@ -1,12 +1,7 @@
 def backToGalua(c : int):
-    special = 0b11011 # x^8 = x^4 + x^3 + x + 1 -> bitowa reprezentacja
-    special = special << (c.bit_length() - 1 - 8) # przesunięcie bitowe o tyle ile nasze c (wynik) wykracza poza pole galua (8 bitów)
-    # ^^ odejmuję jeszcze 1 bo inaczej przesuwa się o 1 bit za daleko (nie rozumiem dlaczego) -> 
-    # ok, już wiem -> bo ja liczyłem różnicę między reprezentacją wielomianową i porównywałem do bitowej -> czyli c.bit.length() zwróci o 1 więcej niż przewidywałem
-    # print("special:", bin(special)) # do debugowania
-    c = c & ((1 << (c.bit_length() -1 )) - 1) # skoro zamieniliśmy najwyższy bit na special (np. x^11 = x^7 + x+6 + x^4 + x^3) to go usuwamy
+    special = 0b100011011 # x^8 = x^4 + x^3 + x + 1 -> bitowa reprezentacja
+    special = special << (c.bit_length() - 9) # przesunięcie bitowe o tyle ile nasze c (wynik) wykracza poza wielokość wielomianu nierozkładalnego (9 bitów)
     c = c ^ special
-    # print(bin(c)) # do debugowania
     if (c.bit_length() > 8): # jeżeli nadal wykracza wywołujemy funkcję ponownie na zmieniejosznym już uprzednio c
         c =  backToGalua(c) # tu zadziałałoby też  'return backToGalua(c)' ale nie rozumiem tego do końca
     return c
@@ -34,7 +29,7 @@ def findReverseBruteForce(a : int) -> int: # jest to implementacja nieodporna na
 
         
 
-print(bin(multiply(0b01010111, 0b00010011)))
-print(bin(multiply(0x99, 0x6754)))
+#print(bin(multiply(0b10010111, 0b00010011)))
+#print(bin(multiply(0x99, 0x6754)))
 
-print(bin(findReverseBruteForce(0b11001000)))
+#print(bin(findReverseBruteForce(0b11001000)))

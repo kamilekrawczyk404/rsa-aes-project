@@ -16,6 +16,11 @@ def AES_ECB_encrypt(plaintext, key): # plaintext to string, key to 128 bitowy ci
     output = []
     for i in range(0, len(input), 16):  # krok co 16 bajtów
         output += _mainAES.main(input[i:i+16], key) # w tym miejscu i jest indeksem pierwszego bajtu bloku 16 bajtowego -> nie jest indeksem każdego kolejnego bajtu!
+
     return output
 
-print(AES_ECB_encrypt("Hello, World!", 0x3f7a9c12b4e6d09f5a2c7e8b1d4f6032))
+result = (AES_ECB_encrypt("Hello, World!", 0x3f7a9c12b4e6d09f5a2c7e8b1d4f6032))
+
+print("\n")
+for row in result:
+    print([hex(x) for x in row])

@@ -46,14 +46,16 @@ def main(inputText, key):
 
        # mixcol 
        # problemem jest mnożenie macierzy -> jest niepoprawnie zaimplementowane -> niewłaściwie mnożone są macierze!!!!!!
-        constantsMatrix = [[0x02, 0x01, 0x01, 0x03], [0x03, 0x02, 0x01, 0x01], [0x01, 0x03, 0x02, 0x01], [0x01, 0x01, 0x03, 0x02]]
-        helperMatrix2 = [[0 for _ in range(4)] for _ in range(4)]
-        for i in range(4):
-            for j in range(4):
-                for k in range(4):
-                    if constantsMatrix[k][j] != 0:
-                        helperMatrix2[i][j] ^= _galuaMath.multiply(textMatrix[i][k], constantsMatrix[k][j])
-        textMatrix = helperMatrix2
+        if r != 9: # w ostatniej rundzie nie wykonuję mixcol
+            constantsMatrix = [[0x02, 0x01, 0x01, 0x03], [0x03, 0x02, 0x01, 0x01], [0x01, 0x03, 0x02, 0x01], [0x01, 0x01, 0x03, 0x02]]
+            helperMatrix2 = [[0 for _ in range(4)] for _ in range(4)]
+            for i in range(4):
+                for j in range(4):
+                    for k in range(4):
+                        if constantsMatrix[k][j] != 0:
+                            helperMatrix2[i][j] ^= _galuaMath.multiply(textMatrix[i][k], constantsMatrix[k][j])
+            textMatrix = helperMatrix2
+
         # key add
         for i in range(4): # okej, tutaj wykonywany jest "key addition" z wykorzystaniem kolejnych kluczy
             for j in range(4):
