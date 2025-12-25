@@ -1,148 +1,183 @@
 import type {
-  CryptoConfig,
-  CryptoState,
+  Algorithm,
+  ControlCommand,
+  FileRaceState,
   IncomingWebSocketMessage,
-  MetricPoint,
+  MetricDTO,
+  StartRaceCommand,
+  UploadedFile,
 } from "../types/crypto.ts";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 
 const WS_URL = "ws://localhost:8000/ws";
-const CACHE_KEY = ["crypto-metrics"];
-
-export const INITIAL_STATE: CryptoState = {
-  status: "idle",
-  metrics: [],
-  summary: null,
-};
-
-const readFileAsBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
-  });
-};
 
 export const useCryptoProcess = () => {
   const [socketUrl, setSocketUrl] = useState<string | null>(null);
-  const [pendingPayload, setPendingPayload] = useState<any | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
-  const queryClient = useQueryClient();
+  // Queue of files to be processed
+  const [fileQueue, setFileQueue] = useState<UploadedFile[]>([]);
 
-  const { data: state } = useQuery<CryptoState>({
-    queryKey: CACHE_KEY,
-    queryFn: () => INITIAL_STATE,
-    enabled: false,
-    initialData: INITIAL_STATE,
-    staleTime: Infinity,
-    gcTime: Infinity,
-    refetchOnWindowFocus: false,
-  });
+  // Currently processed file index
+  const [currentFileIndex, setCurrentFileIndex] = useState<number>(-1);
+
+  // Race state for currently processed file
+  const [raceState, setRaceState] = useState<FileRaceState | null>(null);
+
+  // If race is running
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+
+  const configRef = useRef<any>(null);
 
   const { lastJsonMessage, readyState, sendJsonMessage } =
     useWebSocket<IncomingWebSocketMessage>(socketUrl, {
       share: false,
       shouldReconnect: () => false,
-      onOpen: () => console.log("WebSocket connection opened"),
+      onOpen: () => {
+        console.log("WebSocket connection opened");
+        if (fileQueue.length > 0 && currentFileIndex === -1) {
+          processNextFile(0);
+        }
+      },
       onClose: () => {
-        setSocketUrl(null);
         console.log("WebSocket connection closed");
+        setIsRunning(false);
+        setSocketUrl(null);
       },
       onError: (event) => console.error("WebSocket error observed:", event),
     });
 
   useEffect(() => {
-    if (lastJsonMessage !== null) {
-      handleServerMessage(lastJsonMessage);
+    if (!lastJsonMessage) return;
+
+    const msg = lastJsonMessage;
+
+    if (msg.type === "metric_update" && msg.data && msg.algorithm) {
+      updateRaceMetrics(msg.algorithm, msg.data);
+    }
+
+    if (msg.type === "process_finished" && msg.algorithm) {
+      completeAlgorithm(msg.algorithm, msg.download_url, msg.total_time);
+    }
+
+    if (msg.type === "batch_completed") {
+      setIsRunning(false);
+      console.log("All files processed.");
     }
   }, [lastJsonMessage]);
 
-  useEffect(() => {
-    if (readyState === ReadyState.OPEN && pendingPayload) {
-      console.log("FILES ARE BEING SENT", pendingPayload);
+  const updateRaceMetrics = (alg: Algorithm, data: MetricDTO) => {
+    setRaceState((prev) => {
+      if (!prev) return null;
 
-      sendJsonMessage({
-        type: "START_PROCESS",
-        pendingPayload: pendingPayload,
-      });
-
-      setPendingPayload(null);
-    }
-  }, [readyState, pendingPayload, sendJsonMessage]);
-
-  const handleServerMessage = (message: IncomingWebSocketMessage) => {
-    queryClient.setQueryData<CryptoState>(
-      CACHE_KEY,
-      (oldData: CryptoState | undefined): CryptoState => {
-        const current = oldData ?? INITIAL_STATE;
-
-        if (message.type === "status") {
-          const newPoint: MetricPoint = {
-            timestamp: new Date(message.timestamp).toLocaleTimeString(),
-            cpuUsage: message.data.cpu_usage_percent,
-            ramUsageMB: message.data.mem_usage_percent,
-            sequence: message.sequence,
-          };
-
-          return {
-            ...current,
-            status: "running",
-            metrics: [...current.metrics, newPoint].slice(-50),
-          };
-        }
-
-        if (message.type === "summary") {
-          return {
-            ...current,
-            status: "finished",
-            summary: { totalTimeElapsed: message.time_elapsed },
-          };
-        }
-
-        return current;
-      },
-    );
+      return {
+        ...prev,
+        [alg.toLowerCase()]: {
+          ...prev[alg.toLowerCase() as "aes" | "rsa"],
+          progress: data.progress,
+          cpu: data.cpu_usage,
+          throughput: data.throughput,
+        },
+      };
+    });
   };
 
-  const startTest = useCallback(
-    async (config: CryptoConfig) => {
-      // Reset prev charts
-      queryClient.setQueryData(CACHE_KEY, INITIAL_STATE);
+  const completeAlgorithm = (alg: Algorithm, url?: string, time?: number) => {
+    setRaceState((prev) => {
+      if (!prev) return null;
 
-      const processedFiles = await Promise.all(
-        config.files.map(async (f) => ({
-          name: f.file.name,
-          size: f.file.size,
-          content: await readFileAsBase64(f.file),
-        })),
-      );
+      return {
+        ...prev,
+        [alg.toLowerCase()]: {
+          ...prev[alg.toLowerCase() as "aes" | "rsa"],
+          finished: true,
+          progress: 100,
+          downloadUrl: url,
+          time,
+        },
+      };
+    });
+  };
 
-      // Save processed files
-      setPendingPayload({
-        config,
-        files: processedFiles,
-      });
+  const initializeSession = (
+    sessId: string,
+    files: UploadedFile[],
+    config: any,
+  ) => {
+    setSessionId(sessId);
+    setFileQueue(files);
+    configRef.current = config;
+  };
 
-      // Open ws connection
-      setSocketUrl(WS_URL);
-    },
-    [queryClient],
-  );
+  const startProcessing = () => {
+    if (!sessionId) return;
+    setSocketUrl(WS_URL);
+    setIsRunning(true);
+  };
 
-  const stopTest = useCallback(() => {
+  const processNextFile = (index: number) => {
+    if (index >= fileQueue.length) return;
+
+    const file = fileQueue[index];
+    setCurrentFileIndex(index);
+
+    setRaceState({
+      fileId: file.id,
+      fileName: file.name,
+      fileSize: file.size,
+      status: "processing",
+      aes: { progress: 0, cpu: 0, throughput: 0, finished: false },
+      rsa: { progress: 0, cpu: 0, throughput: 0, finished: false },
+    });
+
+    const payload: StartRaceCommand = {
+      command: "START_RACE",
+      session_id: sessionId!,
+      file_id: file.id,
+      config: configRef.current,
+    };
+
+    sendJsonMessage(payload);
+  };
+
+  const skipToNextFile = () => {
+    const payload: ControlCommand = {
+      command: "NEXT_FILE",
+      session_id: sessionId!,
+    };
+
+    sendJsonMessage(payload);
+
+    const nextIndex = currentFileIndex + 1;
+    if (nextIndex < fileQueue.length) {
+      processNextFile(nextIndex);
+    } else {
+      setIsRunning(false);
+    }
+  };
+
+  const stopAll = () => {
+    const payload: ControlCommand = {
+      command: "STOP_ALL",
+      session_id: sessionId!,
+    };
+
+    sendJsonMessage(payload);
+
     setSocketUrl(null);
-    setPendingPayload(null);
-  }, []);
+    setIsRunning(false);
+    setRaceState(null);
+  };
 
   return {
-    metrics: state?.metrics || [],
-    status: state?.status || "idle",
-    summary: state?.summary || null,
     isConnected: readyState === ReadyState.OPEN,
-    startTest,
-    stopTest,
+    isRunning,
+    currentFile: raceState,
+    queueProgress: { current: currentFileIndex + 1, total: fileQueue.length },
+    initializeSession,
+    startProcessing,
+    skipToNextFile,
+    stopAll,
   };
 };
