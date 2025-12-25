@@ -8,13 +8,15 @@ export const defaultTransition = (
   ease: "easeOut",
 });
 
-export const appearingVariants = (): Variants => {
+export const appearingVariants = (
+  direction: "down-down" | "up-up" | "down-up" | "up-down" = "down-down",
+): Variants => {
   const yOffset = 10;
 
   return {
     initial: {
       opacity: 0,
-      y: -yOffset,
+      y: direction.startsWith("down") ? -yOffset : yOffset,
     },
     animate: {
       opacity: 1,
@@ -28,7 +30,7 @@ export const appearingVariants = (): Variants => {
     },
     exit: {
       opacity: 0,
-      y: yOffset,
+      y: direction.startsWith("up") ? yOffset : -yOffset,
     },
   };
 };

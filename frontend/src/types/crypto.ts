@@ -21,6 +21,11 @@ export interface UploadResponse {
 
 export type Algorithm = "AES" | "RSA";
 
+export const AES_MODES = ["ECB", "CBC", "CFB", "OFB", "CTR"] as const;
+export type AesMode = (typeof AES_MODES)[number];
+
+export type AlgorithmMode = AesMode;
+
 export const AES_KEY_SIZES = [128, 192, 256] as const;
 export const RSA_KEY_SIZES = [1024, 2048, 4096, 8192] as const;
 
@@ -35,7 +40,7 @@ export type FileWithMeta = {
 };
 
 export interface CryptoConfig {
-  aes: { keySize: AesKeySize };
+  aes: { keySize: AesKeySize; mode: AesMode };
   rsa: { keySize: RsaKeySize };
   files: FileWithMeta[];
 }
@@ -47,6 +52,7 @@ export const ALGORITHM_DEFS = {
     description:
       "Standard symetryczny. Szybki i bezpieczny. Używany przez rządy i banki.",
     keySizes: AES_KEY_SIZES,
+    modes: AES_MODES,
   },
   RSA: {
     id: "RSA",
@@ -54,7 +60,6 @@ export const ALGORITHM_DEFS = {
     description:
       "Standard asymetryczny. Wolniejszy, ale umożliwia bezpieczną wymianę kluczy.",
     keySizes: RSA_KEY_SIZES,
-    modes: ["ECB", "CBC", "CFB", "OFB", "CTR"],
   },
 } as const;
 
@@ -100,18 +105,19 @@ export interface TestSummary {
 //   summary: TestSummary | null;
 // }
 
-export interface StartProcessParams {
-  files: string[];
-  aesKeySize: AesKeySize;
-  rsaKeySize: RsaKeySize;
-}
+// export interface StartProcessParams {
+//   files: string[];
+//   aesKeySize: AesKeySize;
+//   rsaKeySize: RsaKeySize;
+// }
 
 export interface StartRaceCommand {
   command: "START_RACE";
   session_id: string;
   file_id: string;
+
   config: {
-    aes: { key_size: number; mode: string };
+    aes: { key_size: number; mode: AesMode };
     rsa: { key_size: number };
   };
 }

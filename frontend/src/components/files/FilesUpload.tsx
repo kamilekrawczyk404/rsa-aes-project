@@ -2,14 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FileImage, FileQuestionMark, FileText, FileUp, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { FileWithMeta } from "../../types/crypto.ts";
+import { useSystemConfig } from "../../hooks/useSystemConfig.ts";
+import Banner from "../Banner.tsx";
 
-const MAX_FILE_SIZE = 1024 * 1024 * 10; // 10MB
-
-const ACCEPTED_FILE_TYPES = [".jpg", ".png", ".txt", ".pdf", ".docx"] as const;
-
-type AcceptedFileType = (typeof ACCEPTED_FILE_TYPES)[number];
-
-const getFileIcon = (fileExtension: AcceptedFileType) => {
+const getFileIcon = (fileExtension: string) => {
   switch (fileExtension) {
     case ".jpg":
     case ".png":
@@ -39,6 +35,11 @@ type FilesUploadProps = {
 };
 
 const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
+  const { data: config, isLoading, isError } = useSystemConfig();
+
+  const maxFileSize = config?.max_file_size_bytes || 0;
+  const allowedExtensions = config?.allowed_extensions || [];
+
   const refFileInput = useRef<HTMLInputElement>(null);
 
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -94,10 +95,18 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
   const processFiles = useCallback((newFiles: File[]) => {
     const validFiles = newFiles.filter((file) => {
       const extension = "." + file.name.split(".").pop()?.toLowerCase();
-      const isTypeValid = ACCEPTED_FILE_TYPES.includes(
-        extension as AcceptedFileType,
-      );
-      const isSizeValid = file.size <= MAX_FILE_SIZE;
+
+      const isTypeValid = allowedExtensions.includes(extension);
+      const isSizeValid = file.size <= maxFileSize;
+
+      if (!isSizeValid)
+        console.warn(
+          `File ${file.name} exceeds the maximum file size - ${maxFileSize} bytes`,
+        );
+      if (!isTypeValid)
+        console.warn(
+          `File ${file.name} has unsupported file extension - ${extension}`,
+        );
 
       return isTypeValid && isSizeValid;
     });
@@ -157,6 +166,17 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
     });
   };
 
+  if (isLoading) return <div>Ładowanie konfiguracji...</div>;
+  if (isError)
+    return (
+      <Banner.Error
+        title={"Nastąpił błąd w czasie pobierania konfiguracji"}
+        description={
+          "Upewnij się, że masz dostęp do internetu. Jeżeli problem nie ustępuje skontaktuj się z administratorem aplikacji."
+        }
+      />
+    );
+
   return (
     <section className={`${className}`}>
       <motion.div
@@ -196,10 +216,10 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
 
       <p className={"text-slate-500 text-sm mt-1"}>
         Akcepowalne pliki:{" "}
-        {ACCEPTED_FILE_TYPES.map((t, index) => (
+        {allowedExtensions.map((t, index) => (
           <span key={t}>
             {t}
-            {index !== ACCEPTED_FILE_TYPES.length - 1 && ", "}
+            {index !== allowedExtensions.length - 1 && ", "}
           </span>
         ))}
       </p>
@@ -245,11 +265,7 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
                 <div className={"flex items-center gap-2"}>
                   <span className={"text-blue-700"}>
                     {getFileIcon(
-                      ("." +
-                        fileMeta.file.name
-                          .split(".")
-                          .pop()
-                          ?.toLowerCase()) as AcceptedFileType,
+                      "." + fileMeta.file.name.split(".").pop()?.toLowerCase(),
                     )}
                   </span>
                   <div>
