@@ -9,7 +9,6 @@ import {
   Cpu,
   Database,
   Download,
-  FileText,
   ListIcon,
   Loader2,
   SkipForward,
@@ -18,6 +17,9 @@ import { motion } from "framer-motion";
 import { formatBytes, formatSpeed } from "../utils/formatters.ts";
 import Header from "../components/dashboard/Header.tsx";
 import ThroughtputChart from "../components/charts/ThroughputChart.tsx";
+import CpuUsageChart from "../components/charts/CpuUsageChart.tsx";
+import type { UploadedFile } from "../types/crypto.ts";
+import SummaryTable from "../components/dashboard/SummaryTable.tsx";
 
 const Dashboard = () => {
   const {
@@ -37,10 +39,13 @@ const Dashboard = () => {
     }
   }, [fileQueue, isRunning, isConnected]);
 
-  const getFileStatus = (index: number) => {
-    const activeIndex = queueProgress.current - 1; // current jest 1-based
+  const getFileStatus = (index: number): string => {
+    const activeIndex = queueProgress.current - 1;
+
     if (index < activeIndex) return "completed";
+
     if (index === activeIndex) return isRunning ? "processing" : "pending";
+
     return "pending";
   };
 
@@ -59,160 +64,143 @@ const Dashboard = () => {
   return (
     <Section
       title="Panel główny"
-      // description="Monitoruj wydajność algorytmów AES i RSA w czasie rzeczywistym. Porównaj zużycie zasobów i czas operacji."
-      // className="max-w-7xl mx-auto"
+      description="Monitoruj wydajność algorytmów AES i RSA w czasie rzeczywistym. Śledź zużycie CPU, przepustowość oraz postęp przetwarzania plików."
     >
-      {/* HEADER KONTROLNY */}
-      <Header />
+      <div className={`flex flex-col gap-4`}>
+        <Header />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* --- LEWA KOLUMNA: RACE MONITOR --- */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className={"max-h-[350px]"}>
-            <ThroughtputChart currentFile={currentFile} />
-          </div>
-          {/* KARTA PLIKU */}
-          {currentFile ? (
-            <div className="bg-slate-900 text-white p-6 rounded-xl shadow-lg">
-              <div className="flex items-start justify-between">
-                <div className="flex gap-4">
-                  <div className="p-3 bg-white/10 rounded-lg">
-                    <FileText size={32} className="text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold">
-                      {currentFile.fileName}
-                    </h3>
-                    <p className="text-slate-400 text-sm font-mono mt-1">
-                      {formatBytes(currentFile.fileSize)} • ID:{" "}
-                      {currentFile.fileId.substring(0, 8)}...
-                    </p>
-                  </div>
-                </div>
-                {/* Status ogólny pliku */}
-                <div className="text-right">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-medium border border-blue-500/30">
-                    {currentFile.status.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="h-32 flex items-center justify-center bg-slate-100 rounded-xl border border-dashed border-slate-300 text-slate-400">
-              Oczekiwanie na dane pliku...
-            </div>
-          )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 space-y-4">
+            <SummaryTable />
 
-          {/* WYŚCIG: AES (ZAJĄC) */}
-          {currentFile && (
-            <AlgorithmRow
-              label="AES-256 (GCM)"
-              stats={currentFile.aes}
-              colorClass="bg-blue-500"
-              icon={<Activity size={24} className="text-blue-600" />}
-            />
-          )}
-
-          {/* WYŚCIG: RSA (ŻÓŁW) */}
-          {currentFile && (
-            <div className="relative">
+            {/* WYŚCIG: AES (ZAJĄC) */}
+            {currentFile && (
               <AlgorithmRow
-                label="RSA-2048 (OAEP)"
-                stats={currentFile.rsa}
-                colorClass="bg-amber-500"
-                icon={<Database size={24} className="text-amber-600" />}
+                label="AES-256 (GCM)"
+                stats={currentFile.aes}
+                colorClass="bg-blue-500"
+                icon={<Activity size={24} className="text-blue-600" />}
               />
+            )}
 
-              {/* Przycisk awaryjny dla RSA */}
-              {!currentFile.rsa.finished && currentFile.aes.finished && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="absolute -right-2 -top-3"
-                >
-                  <button
-                    onClick={skipToNextFile}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-full text-xs font-bold shadow-xl hover:bg-slate-700 hover:scale-105 transition-all border-2 border-white ring-2 ring-slate-200"
+            {/* WYŚCIG: RSA (ŻÓŁW) */}
+            {currentFile && (
+              <div className="relative">
+                <AlgorithmRow
+                  label="RSA-2048 (OAEP)"
+                  stats={currentFile.rsa}
+                  colorClass="bg-amber-500"
+                  icon={<Database size={24} className="text-amber-600" />}
+                />
+
+                {/* Przycisk awaryjny dla RSA */}
+                {!currentFile.rsa.finished && currentFile.aes.finished && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute -right-2 -top-3"
                   >
-                    <SkipForward size={14} /> Pomiń RSA (Zbyt wolne)
-                  </button>
-                </motion.div>
-              )}
-            </div>
-          )}
-        </div>
+                    <button
+                      onClick={skipToNextFile}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-full text-xs font-bold shadow-xl hover:bg-slate-700 hover:scale-105 transition-all border-2 border-white ring-2 ring-slate-200"
+                    >
+                      <SkipForward size={14} /> Pomiń RSA (Zbyt wolne)
+                    </button>
+                  </motion.div>
+                )}
+              </div>
+            )}
+            <ThroughtputChart />
 
-        {/* --- PRAWA KOLUMNA: KOLEJKA PLIKÓW --- */}
-        <div className="lg:col-span-1">
-          <div className="bg-white border border-slate-200 rounded-xl shadow-sm h-full flex flex-col">
-            <div className="p-4 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
-              <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                <ListIcon size={18} /> Kolejka Plików
-              </h3>
-            </div>
+            <CpuUsageChart />
+          </div>
 
-            <div className="p-2 space-y-2 overflow-y-auto max-h-[600px] flex-1">
-              {fileQueue.map((file, idx) => {
-                const status = getFileStatus(idx);
-                const isCurrent = status === "processing";
+          {/* --- PRAWA KOLUMNA: KOLEJKA PLIKÓW --- */}
+          <div className="lg:col-span-1">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm h-full flex flex-col">
+              <div className="p-4 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+                <h3 className="flex items-center gap-2">
+                  <ListIcon size={"1rem"} /> Kolejka przetwarzanych plików
+                </h3>
+              </div>
 
-                return (
-                  <div
-                    key={file.id}
-                    className={`
-                                    relative p-3 rounded-lg border flex items-center gap-3 transition-all
-                                    ${
-                                      isCurrent
-                                        ? "bg-blue-50 border-blue-200 shadow-sm scale-[1.02]"
-                                        : "bg-white border-transparent hover:bg-slate-50"
-                                    }
-                                    ${
-                                      status === "completed" ? "opacity-60" : ""
-                                    }
-                                `}
-                  >
-                    {/* Wskaźnik statusu (Ikona) */}
-                    <div className="shrink-0">
-                      {status === "completed" && (
-                        <CheckCircle2 size={20} className="text-emerald-500" />
-                      )}
-                      {status === "processing" && (
-                        <Loader2
-                          size={20}
-                          className="text-blue-500 animate-spin"
-                        />
-                      )}
-                      {status === "pending" && (
-                        <Clock size={20} className="text-slate-300" />
-                      )}
-                    </div>
+              <div className="p-2 space-y-2 overflow-y-auto max-h-[600px] flex-1">
+                {fileQueue.map((file, idx) => {
+                  const status = getFileStatus(idx);
+                  const isCurrent = status === "processing";
 
-                    {/* Info o pliku */}
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-sm font-medium truncate ${
-                          isCurrent ? "text-blue-700" : "text-slate-700"
-                        }`}
-                      >
-                        {file.name}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {formatBytes(file.size)}
-                      </p>
-                    </div>
-
-                    {/* Aktywny wskaźnik */}
-                    {isCurrent && (
-                      <div className="absolute right-2 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                    )}
-                  </div>
-                );
-              })}
+                  return (
+                    <ProcessedFile
+                      key={file.id}
+                      file={file}
+                      isCurrent={isCurrent}
+                      status={status}
+                    />
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
       </div>
     </Section>
+  );
+};
+
+const ProcessedFile = ({
+  file,
+  isCurrent,
+  status,
+}: {
+  file: UploadedFile;
+  isCurrent: boolean;
+  status: string;
+}) => {
+  return (
+    <div
+      className={`relative p-2 rounded-lg border-[1px] flex items-center gap-2 transition-all ${
+        isCurrent
+          ? "bg-blue-50 border-blue-200 shadow-sm"
+          : "bg-white border-transparent hover:bg-slate-50"
+      } ${status === "completed" ? "opacity-60" : ""}`}
+    >
+      <div className="shrink-0">
+        {status === "completed" && (
+          <CheckCircle2 size={"1rem"} className="text-emerald-500" />
+        )}
+        {status === "processing" && (
+          <Loader2 size={"1rem"} className="text-blue-700 animate-spin" />
+        )}
+        {status === "pending" && (
+          <Clock size={"1rem"} className="text-slate-300" />
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm truncate ${isCurrent ? "text-blue-700" : ""}`}>
+          {file.name}
+        </p>
+        <p className="text-xs text-slate-500">{formatBytes(file.size)}</p>
+      </div>
+
+      {isCurrent && (
+        <motion.div
+          animate={{
+            boxShadow: [
+              "0 0 4px oklch(48.8% 0.243 264.376)",
+              "0 0 8px oklch(54.6% 0.245 262.881)",
+            ],
+            opacity: ["100%", "50%"],
+          }}
+          transition={{
+            duration: 1,
+            repeat: Infinity,
+            repeatType: "mirror",
+          }}
+          className="absolute right-2 w-2 h-2 bg-blue-500 rounded-full"
+        />
+      )}
+    </div>
   );
 };
 
@@ -236,7 +224,6 @@ const AlgorithmRow = ({
 }) => {
   return (
     <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm relative overflow-hidden">
-      {/* Tło paska postępu (całe tło karty się wypełnia) */}
       <motion.div
         className={`absolute left-0 top-0 bottom-0 ${colorClass} opacity-5 z-0`}
         initial={{ width: 0 }}
@@ -245,7 +232,6 @@ const AlgorithmRow = ({
       />
 
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-        {/* 1. Ikona i Nazwa */}
         <div className="md:col-span-3 flex items-center gap-3">
           <div
             className={`p-3 rounded-lg ${colorClass} bg-opacity-10 text-slate-700`}

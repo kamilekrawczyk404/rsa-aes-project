@@ -9,7 +9,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Dashboard from "./pages/Dashboard.tsx";
 import { CryptoProcessProvider } from "./context/CryptoContext.tsx";
 import DevToolbar from "./components/DevToolbar.tsx";
-import { ChartDataProvider } from "./context/ChartDataContext.tsx";
+import { SimulationDataProvider } from "./context/SimulationDataContext.tsx";
 
 export type View = "welcome" | "configurator" | "dashboard";
 
@@ -55,7 +55,7 @@ function App() {
     <BrowserRouter>
       <QueryClientProvider client={client}>
         <CryptoProcessProvider>
-          <ChartDataProvider>
+          <SimulationDataProvider>
             <DevToolbar />
             <Routes>
               <Route path={"/"} element={<DashboardLayout />}>
@@ -70,7 +70,7 @@ function App() {
                 <Route path={"*"} element={<Navigate to={"/"} replace />} />
               </Route>
             </Routes>
-          </ChartDataProvider>
+          </SimulationDataProvider>
         </CryptoProcessProvider>
       </QueryClientProvider>
     </BrowserRouter>

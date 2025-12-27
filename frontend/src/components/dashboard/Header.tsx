@@ -43,7 +43,7 @@ const Header = () => {
 
       <Button.Danger onClick={() => stopAll()} disabled={!isConnected}>
         <span className={"inline-flex gap-2 items-center"}>
-          <Square size={"1rem"} fill="currentColor" /> Przerwij wszystko
+          <Square size={"1rem"} fill="currentColor" /> Zakończ sesję
         </span>
       </Button.Danger>
     </Container>

@@ -179,6 +179,7 @@ export const useCryptoProcess = () => {
   };
 
   return {
+    config: configRef.current,
     fileQueue,
     isSessionInitialized: sessionId !== null,
     isConnected: readyState === ReadyState.OPEN,

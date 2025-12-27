@@ -1,12 +1,20 @@
-import React from "react";
-import type { FileRaceState } from "../../types/crypto.ts";
+import ChartSkeleton from "./ChartSkeleton.tsx";
+import { Cpu } from "lucide-react";
+import { useSimulationDataContext } from "../../context/SimulationDataContext.tsx";
 
-type CpuUsageChartProps = {
-  currentFile: FileRaceState | null;
-};
+const CpuUsageChart = () => {
+  const { samples } = useSimulationDataContext();
 
-const CpuUsageChart = ({ currentFile }: CpuUsageChartProps) => {
-  return <div>CpuUsageChart</div>;
+  return (
+    <ChartSkeleton
+      icon={<Cpu size={"1rem"} />}
+      title={"Zużycie procesora"}
+      description={"Obciążenie rdzenia (%)"}
+      data={samples}
+      unit={"(%)"}
+      keys={{ aes: "aes.cpuUsage", rsa: "rsa.cpuUsage" }}
+    />
+  );
 };
 
 export default CpuUsageChart;
