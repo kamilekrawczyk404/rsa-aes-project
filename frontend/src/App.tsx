@@ -7,6 +7,9 @@ import Welcome from "./pages/Welcome.tsx";
 import Configurator from "./pages/Configurator.tsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Dashboard from "./pages/Dashboard.tsx";
+import { CryptoProcessProvider } from "./context/CryptoContext.tsx";
+import DevToolbar from "./components/DevToolbar.tsx";
+import { ChartDataProvider } from "./context/ChartDataContext.tsx";
 
 export type View = "welcome" | "configurator" | "dashboard";
 
@@ -51,19 +54,24 @@ function App() {
   return (
     <BrowserRouter>
       <QueryClientProvider client={client}>
-        <Routes>
-          <Route path={"/"} element={<DashboardLayout />}>
-            {Object.entries(menuItems).map(([key, item]) => (
-              <Route
-                key={key}
-                index={key === "welcome"}
-                path={item.link.substring(1)}
-                element={item.element}
-              />
-            ))}
-            <Route path={"*"} element={<Navigate to={"/"} replace />} />
-          </Route>
-        </Routes>
+        <CryptoProcessProvider>
+          <ChartDataProvider>
+            <DevToolbar />
+            <Routes>
+              <Route path={"/"} element={<DashboardLayout />}>
+                {Object.entries(menuItems).map(([key, item]) => (
+                  <Route
+                    key={key}
+                    index={key === "welcome"}
+                    path={item.link.substring(1)}
+                    element={item.element}
+                  />
+                ))}
+                <Route path={"*"} element={<Navigate to={"/"} replace />} />
+              </Route>
+            </Routes>
+          </ChartDataProvider>
+        </CryptoProcessProvider>
       </QueryClientProvider>
     </BrowserRouter>
   );

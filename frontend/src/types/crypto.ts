@@ -63,31 +63,6 @@ export const ALGORITHM_DEFS = {
   },
 } as const;
 
-// export interface StatusDataDTO {
-//   cpu_usage_percent: number;
-//   mem_total: number;
-//   mem_usage: number;
-//   mem_usage_percent: number;
-// }
-
-// interface BaseWebSocketMessage {
-//   type: "status" | "summary";
-//   sequence: number;
-//   timestamp: string;
-// }
-
-// export interface StatusPackageDTO extends BaseWebSocketMessage {
-//   type: "status";
-//   data: StatusDataDTO;
-// }
-//
-// export interface SummaryPackageDTO extends BaseWebSocketMessage {
-//   type: "summary";
-//   time_elapsed: number;
-// }
-
-// export type IncomingWebSocketMessage = StatusPackageDTO | SummaryPackageDTO;
-
 export interface MetricPoint {
   timestamp: string;
   sequence: number;
@@ -98,18 +73,6 @@ export interface MetricPoint {
 export interface TestSummary {
   totalTimeElapsed: number;
 }
-
-// export interface CryptoState {
-//   status: "idle" | "running" | "finished";
-//   metrics: MetricPoint[];
-//   summary: TestSummary | null;
-// }
-
-// export interface StartProcessParams {
-//   files: string[];
-//   aesKeySize: AesKeySize;
-//   rsaKeySize: RsaKeySize;
-// }
 
 export interface StartRaceCommand {
   command: "START_RACE";

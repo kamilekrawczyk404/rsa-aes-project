@@ -7,13 +7,14 @@ import {
 } from "../types/crypto.ts";
 import AlgorithmCard from "../components/algorithms/AlgorithmCard.tsx";
 import FilesUpload from "../components/files/FilesUpload.tsx";
-import ProcessButton from "../components/button/ProcessButton.tsx";
-import { useCryptoProcess } from "../hooks/useCryptoProcess.ts";
 import { useNavigate } from "react-router-dom";
 import { menuItems } from "../App.tsx";
 import { useFileUpload } from "../hooks/useFileUpload.ts";
 import { AES_MODE_DETAILS, type AesDetails } from "../types/modes.tsx";
-import { ShieldAlert, ShieldCheck } from "lucide-react";
+import { Play, ShieldAlert, ShieldCheck } from "lucide-react";
+import { useCrypto } from "../context/CryptoContext.tsx";
+import Banner from "../components/Banner.tsx";
+import Button from "../components/button/Button.tsx";
 
 interface LocalConfig {
   aes: {
@@ -29,7 +30,7 @@ interface LocalConfig {
 const Configurator = () => {
   const navigate = useNavigate();
   const { mutate: uploadFiles, isPending: isUploading } = useFileUpload();
-  const { initializeSession } = useCryptoProcess();
+  const { initializeSession, isSessionInitialized } = useCrypto();
 
   const [canStart, setCanStart] = useState<boolean>(false);
 
@@ -71,6 +72,7 @@ const Configurator = () => {
       {
         onSuccess: (response) => {
           console.log("Files uploaded, starting session...", response);
+          // Initialize session in context
           initializeSession(response.session_id, response.files, {
             aes: config.aes,
             rsa: config.rsa,
@@ -98,97 +100,117 @@ const Configurator = () => {
         "Dostosuj parametry testu kryptograficznego do swoich potrzeb. W tej sekcji zdefiniujesz siłę kluczy (w bitach) dla algorytmów AES i RSA oraz załadujesz pliki, na których przeprowadzona zostanie analiza wydajności w czasie rzeczywistym."
       }
     >
-      <div className={"flex lg:flex-row flex-col gap-4 justify-between"}>
-        {Object.entries(config).map(([key, params]) => {
-          if (key !== "files")
-            return (
-              <AlgorithmCard
-                key={key}
-                algorithm={key.toUpperCase() as Algorithm}
-                keySizes={[params.keySize]}
-                onKeySizeChange={(newSize) =>
-                  handleAlgorithmKeySizeChange(
-                    key.toUpperCase() as Algorithm,
-                    newSize,
-                  )
-                }
-                modes={
-                  key === "aes"
-                    ? Object.entries(AES_MODE_DETAILS).map(
-                        ([mode, values]) => ({
-                          mode: mode as AesMode,
-                          ...values,
-                        }),
+      {isSessionInitialized ? (
+        <Banner.Warning
+          title={"Wykryto aktywną sesję symulacyjną"}
+          description={
+            "Konfigurator jest obecnie niedostępny, ponieważ istnieje aktywna sesja symulacyjna. Aby zmienić parametry testu lub wgrać nowe pliki, zakończ bieżącą sesję w panelu głównym."
+          }
+        />
+      ) : (
+        <>
+          <div className={"flex lg:flex-row flex-col gap-4 justify-between"}>
+            {Object.entries(config).map(([key, params]) => {
+              if (key !== "files")
+                return (
+                  <AlgorithmCard
+                    key={key}
+                    algorithm={key.toUpperCase() as Algorithm}
+                    keySizes={[params.keySize]}
+                    onKeySizeChange={(newSize) =>
+                      handleAlgorithmKeySizeChange(
+                        key.toUpperCase() as Algorithm,
+                        newSize,
                       )
-                    : []
-                }
-                onModeChange={handleAesModeChange}
-                renderSelectorItem={(item, withAnnotation) => (
-                  <div className={""}>
-                    {withAnnotation ? (
-                      <div
-                        className={
-                          "border-[1px] rounded-md border-slate-100 bg-white font-normal p-2"
-                        }
-                      >
-                        <div className={"flex items-center gap-2 mb-1"}>
+                    }
+                    modes={
+                      key === "aes"
+                        ? Object.entries(AES_MODE_DETAILS).map(
+                            ([mode, values]) => ({
+                              mode: mode as AesMode,
+                              ...values,
+                            }),
+                          )
+                        : []
+                    }
+                    onModeChange={handleAesModeChange}
+                    renderSelectorItem={(item, withAnnotation) => (
+                      <div className={""}>
+                        {withAnnotation ? (
                           <div
                             className={
-                              "w-8 h-8 rounded-md bg-blue-500/15 flex items-center justify-center"
+                              "border-[1px] rounded-md border-slate-100 bg-white font-normal p-2"
                             }
                           >
-                            {item.icon}
+                            <div className={"flex items-center gap-2 mb-1"}>
+                              <div
+                                className={
+                                  "w-8 h-8 rounded-md bg-blue-500/15 flex items-center justify-center"
+                                }
+                              >
+                                {item.icon}
+                              </div>
+                              <span className={""}>{item.label}</span>
+                              <span
+                                className={`inline-block ml-auto ${
+                                  item.isSecure
+                                    ? "text-green-700"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {item.isSecure ? (
+                                  <ShieldCheck />
+                                ) : (
+                                  <ShieldAlert />
+                                )}
+                              </span>
+                            </div>
+                            <p className={"text-sm text-slate-500"}>
+                              {item.description}
+                            </p>
                           </div>
-                          <span className={""}>{item.label}</span>
-                          <span
-                            className={`inline-block ml-auto ${
-                              item.isSecure ? "text-green-700" : "text-red-600"
-                            }`}
-                          >
-                            {item.isSecure ? <ShieldCheck /> : <ShieldAlert />}
+                        ) : (
+                          <span>
+                            {item.mode}{" "}
+                            <span className={"mr-2 text-slate-500"}>
+                              ({item.label})
+                            </span>
                           </span>
-                        </div>
-                        <p className={"text-sm text-slate-500"}>
-                          {item.description}
-                        </p>
+                        )}
                       </div>
-                    ) : (
-                      <span>
-                        {item.mode}{" "}
-                        <span className={"mr-2 text-slate-500"}>
-                          ({item.label})
-                        </span>
-                      </span>
                     )}
-                  </div>
-                )}
-              />
-            );
-        })}
-      </div>
+                  />
+                );
+            })}
+          </div>
 
-      <FilesUpload
-        onFilesChange={(files) => setConfig((prev) => ({ ...prev, files }))}
-      />
+          <FilesUpload
+            onFilesChange={(files) => setConfig((prev) => ({ ...prev, files }))}
+          />
 
-      <ProcessButton
-        className={"lg:self-start mt-auto"}
-        disabled={!canStart}
-        onClick={() => handleStartSimulation()}
-      >
-        {isUploading ? (
-          <span className={"flex items-center gap-2"}>
-            <span
-              className={
-                "animate-spin h-4 w-4 border-[1px] border-white border-t-transparent rounded-full"
-              }
-            />
-            Wysyłanie plików...
-          </span>
-        ) : (
-          "Rozpocznij symulację"
-        )}
-      </ProcessButton>
+          <Button.Process
+            className={"lg:self-start mt-auto"}
+            disabled={!canStart}
+            onClick={() => handleStartSimulation()}
+          >
+            {isUploading ? (
+              <span className={"flex items-center gap-2"}>
+                <span
+                  className={
+                    "animate-spin h-4 w-4 border-[1px] border-white border-t-transparent rounded-full"
+                  }
+                />
+                Wysyłanie plików...
+              </span>
+            ) : (
+              <span className={"flex items-center gap-2"}>
+                <Play size={"1rem"} />
+                Rozpocznij symulację
+              </span>
+            )}
+          </Button.Process>
+        </>
+      )}
     </Section>
   );
 };

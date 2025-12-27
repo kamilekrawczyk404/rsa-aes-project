@@ -7,6 +7,7 @@ import { GlobeLock, Shield, Zap } from "lucide-react";
 import Selector from "../form/Selector.tsx";
 import { type ReactNode } from "react";
 import type { AesDetails } from "../../types/modes.tsx";
+import Container from "../../layouts/Container.tsx";
 
 const getAlgorithmIcon = (type: Algorithm) => {
   switch (type) {
@@ -29,7 +30,6 @@ export type AlgorithmCardProps = {
     item: AesDetails & { mode: AesMode },
     withAnnotation: boolean,
   ) => ReactNode;
-  className?: string;
 };
 
 const AlgorithmCard = ({
@@ -38,23 +38,15 @@ const AlgorithmCard = ({
   onKeySizeChange,
   renderSelectorItem,
   onModeChange,
-  className = "",
   modes = [],
 }: AlgorithmCardProps) => {
   const def = ALGORITHM_DEFS[algorithm];
-
-  // const [config, setConfig] = useState<{ size: number; mode: any }>({
-  //   size: keySizes[0],
-  //   mode: modes[0],
-  // });
 
   const currentKeyIndex = def.keySizes.indexOf(keySizes[0] as never);
   const maxKeyIndex = def.keySizes.length - 1;
 
   return (
-    <article
-      className={`relative rounded-lg border-[1px] border-slate-300 lg:p-6 p-4 transition-all flex flex-col gap-3 basis-1/2 ${className}`}
-    >
+    <Container>
       <div
         className={`absolute left-0 inset-y-2 w-2 bg-blue-700 rounded-r-lg`}
       />
@@ -71,7 +63,7 @@ const AlgorithmCard = ({
         <span className={"inline-block text-sm mb-2"}>Siła klucza</span>
 
         <div className="relative w-full flex items-center h-4">
-          <div className="absolute w-full h-0.5 rounded-full overflow-hidden bg-slate-300">
+          <div className="absolute w-full h-0.5 rounded-full overflow-hidden bg-slate-200">
             <div
               className={`h-full transition-all bg-blue-700`}
               style={{ width: `${(currentKeyIndex / maxKeyIndex) * 100}%` }}
@@ -96,8 +88,8 @@ const AlgorithmCard = ({
             {def.keySizes.map((size, idx) => (
               <div
                 key={size}
-                className={`w-3 aspect-square rounded-full ring-2 ring-slate-100 ${
-                  idx <= currentKeyIndex ? "bg-blue-700" : "bg-slate-400"
+                className={`w-3 aspect-square rounded-full ring-2 ring-white ${
+                  idx <= currentKeyIndex ? "bg-blue-700" : "bg-slate-200"
                 } ${idx === currentKeyIndex ? "scale-150" : ""}`}
               />
             ))}
@@ -122,10 +114,8 @@ const AlgorithmCard = ({
       </div>
 
       {modes.length > 0 && (
-        <div className={"flex flex-col w-full"}>
-          <div className={"flex items-center gap-2"}>
-            <span className={"inline-block text-sm mb-2"}>Tryb algorytmu</span>
-          </div>
+        <div className={"flex flex-col w-full mt-4"}>
+          <span className={"inline-block text-sm mb-1"}>Tryb algorytmu</span>
 
           <Selector
             items={modes}
@@ -134,7 +124,7 @@ const AlgorithmCard = ({
           />
         </div>
       )}
-    </article>
+    </Container>
   );
 };
 

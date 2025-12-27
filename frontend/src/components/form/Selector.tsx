@@ -61,7 +61,7 @@ const Selector = <T extends unknown>({
             animate={"animate"}
             exit={"exit"}
             className={
-              "!z-1000 bg-white absolute left-0 top-[calc(100%+.5rem)] flex flex-col gap-1 max-h-72 overflow-y-auto shadow-md rounded-lg p-1"
+              "!z-1000 bg-white absolute left-0 top-[calc(100%+.5rem)] flex flex-col max-h-72 overflow-y-auto shadow-md rounded-lg p-2"
             }
           >
             {items.map((item, index) => (
@@ -97,14 +97,14 @@ const SelectorItem = ({
   return (
     <div
       onClick={onClick}
-      className={`transition-all p-2 rounded-md select-none ${
+      className={`transition-all p-2 rounded-md select-none border-[1px] cursor-pointer ${
         isSelected && displayAs === "dropdown"
-          ? "bg-blue-500/15 text-blue-700 font-semibold shadow-sm md:min-w-96 w-full"
-          : "bg-white"
+          ? "bg-blue-100 text-blue-700 font-semibold shadow-sm md:min-w-96 w-full border-blue-200"
+          : "bg-white border-transparent"
       } ${
         displayAs === "dropdown"
-          ? "hover:bg-blue-500/15 hover:text-blue-700 "
-          : "flex items-center justify-between bg-white shadow-sm rounded-lg w-full"
+          ? ""
+          : "flex items-center justify-between bg-white rounded-lg w-full !border-slate-200"
       }`}
     >
       {children}

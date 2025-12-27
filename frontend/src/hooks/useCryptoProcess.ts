@@ -108,6 +108,9 @@ export const useCryptoProcess = () => {
     setSessionId(sessId);
     setFileQueue(files);
     configRef.current = config;
+
+    setRaceState(null);
+    setIsRunning(false);
   };
 
   const startProcessing = () => {
@@ -158,19 +161,26 @@ export const useCryptoProcess = () => {
   };
 
   const stopAll = () => {
-    const payload: ControlCommand = {
-      command: "STOP_ALL",
-      session_id: sessionId!,
-    };
+    if (sessionId) {
+      const payload: ControlCommand = {
+        command: "STOP_ALL",
+        session_id: sessionId,
+      };
 
-    sendJsonMessage(payload);
+      sendJsonMessage(payload);
+    }
 
-    setSocketUrl(null);
     setIsRunning(false);
+    setSocketUrl(null);
     setRaceState(null);
+    setSessionId(null);
+    setFileQueue([]);
+    setCurrentFileIndex(-1);
   };
 
   return {
+    fileQueue,
+    isSessionInitialized: sessionId !== null,
     isConnected: readyState === ReadyState.OPEN,
     isRunning,
     currentFile: raceState,

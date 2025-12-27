@@ -10,7 +10,13 @@ export const useFileUpload = () => {
         formData.append("files", file);
       });
 
-      return await apiClient.post("/upload", formData);
+      const response = await apiClient.post("/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      return response.data;
     },
   });
 };
