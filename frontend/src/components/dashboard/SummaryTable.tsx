@@ -11,6 +11,7 @@ import {
 import type { Algorithm, FileRaceState } from "../../types/crypto.ts";
 import { useSimulationDataContext } from "../../context/SimulationDataContext.tsx";
 import type { AverageData } from "../../hooks/useSimulationData.ts";
+import { motion } from "framer-motion";
 
 const algorithms = ["AES", "RSA"] as Algorithm[];
 
@@ -47,7 +48,7 @@ const tableRows = [
 ];
 
 const SummaryTable = () => {
-  const { samples, average } = useSimulationDataContext();
+  const { average } = useSimulationDataContext();
   const { currentFile, config } = useCrypto();
 
   return (
@@ -61,30 +62,34 @@ const SummaryTable = () => {
             Podsumowanie wyników przetwarzania plików
           </h3>
           <p className="text-xs text-slate-400">
-            Przegląd wydajności algorytmów AES i RSA dla aktualnie
-            przetwarzanych plików
+            Przegląd wydajności algorytmów dla aktualnie przetwarzanego pliku
           </p>
         </div>
       </section>
       <section className={"border-b-[1px] border-slate-200 !w-full"}>
         {/*table header*/}
         <div className={"grid grid-cols-[12rem_1fr_1fr]"}>
-          <div className={"!w-40"} />
+          <div />
           {algorithms.map((alg) => (
-            <div key={alg} className={"relative p-4 font-normal text-center"}>
+            <div
+              key={alg}
+              className={
+                "relative p-2 font-normal text-center border-l-[1px] border-slate-200"
+              }
+            >
               {alg}
             </div>
           ))}
         </div>
       </section>
 
-      <section className={""}>
+      <section>
         {tableRows.map((row) => (
           <div
-            className={"grid grid-cols-[12rem_1fr_1fr] text-sm"}
+            className={"grid grid-cols-[12rem_1fr_1fr] text-sm even:bg-blue-50"}
             key={row.type}
           >
-            <div className={"border-r-[1px] border-slate-200 text-sm"}>
+            <div className={"text-sm"}>
               <span className={"inline-block px-4 py-2"}>{row.title}</span>
             </div>
             {algorithms.map((alg) =>
@@ -112,7 +117,45 @@ const renderTableRow = (
 
   switch (type) {
     case "progress":
-      element = <div>Postęp</div>;
+      let backgroundColor = "bg-blue-300";
+      let width = 0;
+
+      if (
+        (alg === "aes" && data.file?.aes?.finished) ||
+        (alg === "rsa" && data.file?.rsa?.finished)
+      ) {
+        backgroundColor = "bg-emerald-500";
+      }
+
+      if (alg === "aes" && data.file?.aes?.progress) {
+        width = data.file.aes.progress;
+      } else if (alg === "rsa" && data.file?.rsa?.progress) {
+        width = data.file.rsa.progress;
+      }
+
+      element = (
+        <div
+          className={
+            "relative rounded-md overflow-hidden w-full h-full bg-blue-50 border-[1px] border-slate-200"
+          }
+        >
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: width + "%" }}
+            transition={{
+              duration: 0.3,
+              type: "spring",
+            }}
+            className={`absolute left-0 inset-y-0 transition-colors ${backgroundColor}`}
+          >
+            <span
+              className={"absolute top-1/2 -translate-y-1/2 left-1 text-xs"}
+            >
+              {width.toFixed()}%
+            </span>
+          </motion.div>
+        </div>
+      );
       break;
     case "keySize":
       element = <span>{data.config[alg].keySize} bity</span>;
@@ -153,11 +196,11 @@ const renderTableRow = (
 
       if (algorithm === "AES") {
         value = data.file?.aes?.finished
-          ? data.file.aes.time
+          ? data.file.aes.time + " s"
           : "Proces nadal trwa...";
       } else {
         value = data.file?.rsa?.finished
-          ? data.file.rsa.time
+          ? data.file.rsa.time + " s"
           : "Proces nadal trwa...";
       }
 
@@ -165,7 +208,14 @@ const renderTableRow = (
       break;
   }
 
-  return <div className={"px-4 py-2"}>{element}</div>;
+  return (
+    <div
+      key={`${type}.${alg}`}
+      className={"px-4 py-2 border-l-[1px] border-slate-200"}
+    >
+      {element}
+    </div>
+  );
 };
 
 export default SummaryTable;
