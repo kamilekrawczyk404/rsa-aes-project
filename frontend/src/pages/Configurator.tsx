@@ -13,8 +13,8 @@ import { useFileUpload } from "../hooks/useFileUpload.ts";
 import { AES_MODE_DETAILS, type AesDetails } from "../types/modes.tsx";
 import { Play, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useCrypto } from "../context/CryptoContext.tsx";
-import Banner from "../components/Banner.tsx";
 import Button from "../components/button/Button.tsx";
+import Banner from "../components/banners/Banner.tsx";
 
 interface LocalConfig {
   aes: {
@@ -72,6 +72,7 @@ const Configurator = () => {
       {
         onSuccess: (response) => {
           console.log("Files uploaded, starting session...", response);
+
           // Initialize session in context
           initializeSession(response.session_id, response.files, {
             aes: config.aes,

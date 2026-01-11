@@ -1,5 +1,6 @@
 import { type ComponentProps } from "react";
 import { type HTMLMotionProps, motion } from "framer-motion";
+import { X } from "lucide-react";
 
 const SkeletonButton = ({
   className,
@@ -49,8 +50,8 @@ const ProcessButton = ({
 
 const DangerButton = ({
   onClick,
-  disabled = false,
   children,
+  disabled = false,
 }: ComponentProps<"button">) => {
   return (
     <SkeletonButton
@@ -63,9 +64,23 @@ const DangerButton = ({
   );
 };
 
+const ClosingButton = ({ children, ...props }: ComponentProps<"button">) => {
+  return (
+    <button
+      className={
+        "border-inherit text-inherit w-6 h-6 rounded-sm flex items-center justify-center"
+      }
+      {...props}
+    >
+      <X size={"1rem"} />
+    </button>
+  );
+};
+
 export const Button = {
   Process: ProcessButton,
   Danger: DangerButton,
+  Close: ClosingButton,
   // Download: DownloadButton,
 };
 

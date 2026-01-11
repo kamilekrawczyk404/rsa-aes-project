@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard.tsx";
 import { CryptoProcessProvider } from "./context/CryptoContext.tsx";
 import DevToolbar from "./components/DevToolbar.tsx";
 import { SimulationDataProvider } from "./context/SimulationDataContext.tsx";
+import { PopupProvider } from "./context/PopUpContext.tsx";
 
 export type View = "welcome" | "configurator" | "dashboard";
 
@@ -56,20 +57,22 @@ function App() {
       <QueryClientProvider client={client}>
         <CryptoProcessProvider>
           <SimulationDataProvider>
-            <DevToolbar />
-            <Routes>
-              <Route path={"/"} element={<DashboardLayout />}>
-                {Object.entries(menuItems).map(([key, item]) => (
-                  <Route
-                    key={key}
-                    index={key === "welcome"}
-                    path={item.link.substring(1)}
-                    element={item.element}
-                  />
-                ))}
-                <Route path={"*"} element={<Navigate to={"/"} replace />} />
-              </Route>
-            </Routes>
+            <PopupProvider>
+              <DevToolbar />
+              <Routes>
+                <Route path={"/"} element={<DashboardLayout />}>
+                  {Object.entries(menuItems).map(([key, item]) => (
+                    <Route
+                      key={key}
+                      index={key === "welcome"}
+                      path={item.link.substring(1)}
+                      element={item.element}
+                    />
+                  ))}
+                  <Route path={"*"} element={<Navigate to={"/"} replace />} />
+                </Route>
+              </Routes>
+            </PopupProvider>
           </SimulationDataProvider>
         </CryptoProcessProvider>
       </QueryClientProvider>

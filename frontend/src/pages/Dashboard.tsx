@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import Section from "../components/Section.tsx";
 import { useCrypto } from "../context/CryptoContext.tsx";
-import Banner from "../components/Banner.tsx";
 import {
   Activity,
   CheckCircle2,
@@ -20,6 +19,7 @@ import ThroughtputChart from "../components/charts/ThroughputChart.tsx";
 import CpuUsageChart from "../components/charts/CpuUsageChart.tsx";
 import type { UploadedFile } from "../types/crypto.ts";
 import SummaryTable from "../components/dashboard/SummaryTable.tsx";
+import Banner from "../components/banners/Banner.tsx";
 
 const Dashboard = () => {
   const {
@@ -70,52 +70,31 @@ const Dashboard = () => {
         <Header />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/*LEFT SECTION (CHARTS, SUMMARY TABLE)*/}
           <div className="lg:col-span-2 space-y-4">
             <SummaryTable />
 
-            {/* WYŚCIG: AES (ZAJĄC) */}
-            {currentFile && (
-              <AlgorithmRow
-                label="AES-256 (GCM)"
-                stats={currentFile.aes}
-                colorClass="bg-blue-500"
-                icon={<Activity size={24} className="text-blue-600" />}
-              />
-            )}
-
-            {/* WYŚCIG: RSA (ŻÓŁW) */}
-            {currentFile && (
-              <div className="relative">
-                <AlgorithmRow
-                  label="RSA-2048 (OAEP)"
-                  stats={currentFile.rsa}
-                  colorClass="bg-amber-500"
-                  icon={<Database size={24} className="text-amber-600" />}
-                />
-
-                {/* Przycisk awaryjny dla RSA */}
-                {!currentFile.rsa.finished && currentFile.aes.finished && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="absolute -right-2 -top-3"
-                  >
-                    <button
-                      onClick={skipToNextFile}
-                      className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-full text-xs font-bold shadow-xl hover:bg-slate-700 hover:scale-105 transition-all border-2 border-white ring-2 ring-slate-200"
-                    >
-                      <SkipForward size={14} /> Pomiń RSA (Zbyt wolne)
-                    </button>
-                  </motion.div>
-                )}
-              </div>
-            )}
             <ThroughtputChart />
 
             <CpuUsageChart />
+
+            {/*{!currentFile.rsa.finished && currentFile.aes.finished && (*/}
+            {/*    <motion.div*/}
+            {/*        initial={{ opacity: 0, y: 10 }}*/}
+            {/*        animate={{ opacity: 1, y: 0 }}*/}
+            {/*        className="absolute -right-2 -top-3"*/}
+            {/*    >*/}
+            {/*      <button*/}
+            {/*          onClick={skipToNextFile}*/}
+            {/*          className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-full text-xs font-bold shadow-xl hover:bg-slate-700 hover:scale-105 transition-all border-2 border-white ring-2 ring-slate-200"*/}
+            {/*      >*/}
+            {/*        <SkipForward size={14} /> Pomiń RSA (Zbyt wolne)*/}
+            {/*      </button>*/}
+            {/*    </motion.div>*/}
+            {/*)}*/}
           </div>
 
-          {/* --- PRAWA KOLUMNA: KOLEJKA PLIKÓW --- */}
+          {/*FILES QUEUE*/}
           <div className="lg:col-span-1">
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm h-full flex flex-col">
               <div className="p-4 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
@@ -200,104 +179,6 @@ const ProcessedFile = ({
           className="absolute right-2 w-2 h-2 bg-blue-500 rounded-full"
         />
       )}
-    </div>
-  );
-};
-
-const AlgorithmRow = ({
-  label,
-  stats,
-  colorClass,
-  icon,
-}: {
-  label: string;
-  stats: {
-    progress: number;
-    cpu: number;
-    throughput: number;
-    finished: boolean;
-    downloadUrl?: string;
-    time?: number;
-  };
-  colorClass: string;
-  icon: React.ReactNode;
-}) => {
-  return (
-    <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm relative overflow-hidden">
-      <motion.div
-        className={`absolute left-0 top-0 bottom-0 ${colorClass} opacity-5 z-0`}
-        initial={{ width: 0 }}
-        animate={{ width: `${stats.progress}%` }}
-        transition={{ ease: "linear", duration: 0.2 }}
-      />
-
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-        <div className="md:col-span-3 flex items-center gap-3">
-          <div
-            className={`p-3 rounded-lg ${colorClass} bg-opacity-10 text-slate-700`}
-          >
-            {icon}
-          </div>
-          <div>
-            <h3 className="font-bold text-lg text-slate-800">{label}</h3>
-            {stats.finished ? (
-              <span className="text-xs font-mono text-emerald-600 flex items-center gap-1">
-                <CheckCircle2 size={12} /> Zakończono w {stats.time}s
-              </span>
-            ) : (
-              <span className="text-xs font-mono text-slate-500 flex items-center gap-1">
-                <Loader2 size={12} className="animate-spin" /> Przetwarzanie...
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* 2. Metryki (CPU / Speed) */}
-        <div className="md:col-span-5 grid grid-cols-2 gap-4">
-          <div className="flex flex-col">
-            <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Cpu size={12} /> CPU Usage
-            </span>
-            <span className="font-mono text-lg font-medium">
-              {stats.cpu.toFixed(1)}%
-            </span>
-            {/* Mini pasek CPU */}
-            <div className="h-1 w-full bg-slate-100 rounded-full mt-1 overflow-hidden">
-              <motion.div
-                className="h-full bg-slate-400"
-                animate={{ width: `${stats.cpu}%` }}
-              />
-            </div>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Activity size={12} /> Speed
-            </span>
-            <span className="font-mono text-lg font-medium">
-              {formatSpeed(stats.throughput)}
-            </span>
-          </div>
-        </div>
-
-        {/* 3. Akcje (Pobierz / Postęp) */}
-        <div className="md:col-span-4 flex justify-end items-center gap-3">
-          {stats.finished && stats.downloadUrl ? (
-            <a
-              href={`http://localhost:8000${stats.downloadUrl}`}
-              target="_blank"
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm"
-            >
-              <Download size={16} /> Pobierz Wynik
-            </a>
-          ) : (
-            <div className="text-right">
-              <span className="text-2xl font-bold text-slate-700">
-                {stats.progress.toFixed(1)}%
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 };

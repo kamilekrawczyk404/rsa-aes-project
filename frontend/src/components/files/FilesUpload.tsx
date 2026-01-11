@@ -3,8 +3,8 @@ import { FileImage, FileQuestionMark, FileText, FileUp, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { FileWithMeta } from "../../types/crypto.ts";
 import { useSystemConfig } from "../../hooks/useSystemConfig.ts";
-import Banner from "../Banner.tsx";
 import Container from "../../layouts/Container.tsx";
+import Banner from "../banners/Banner.tsx";
 
 const getFileIcon = (fileExtension: string) => {
   switch (fileExtension) {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FileRaceState } from "../types/crypto.ts";
 
-const MAX_SAMPLES_LENGTH = 500;
+const MAX_SAMPLES_LENGTH = 50;
 
 interface SampleProperties {
   throughput: number;
@@ -101,7 +101,7 @@ const useSimulationData = (currentFile: FileRaceState | null) => {
         },
       };
 
-      const newSamples: SimulationSample[] = [
+      let newSamples: SimulationSample[] = [
         ...prev.samples,
         {
           time: timeLabel,
@@ -117,7 +117,7 @@ const useSimulationData = (currentFile: FileRaceState | null) => {
       ];
 
       if (newSamples.length >= MAX_SAMPLES_LENGTH) {
-        newSamples.slice(newSamples.length - MAX_SAMPLES_LENGTH);
+        newSamples = newSamples.slice(-MAX_SAMPLES_LENGTH);
       }
 
       return {
