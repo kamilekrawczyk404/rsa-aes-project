@@ -130,7 +130,7 @@ export interface FileRaceState {
   fileId: string;
   fileName: string;
   fileSize: number;
-  status: "pending" | "processing" | "completed" | "error";
+  status: "pending" | "processing" | "completed" | "error" | "skipped";
   aes: AlgorithmRaceState;
   rsa: AlgorithmRaceState & { aborted?: boolean };
 }

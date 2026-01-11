@@ -5,8 +5,6 @@ import { useSimulationDataContext } from "../../context/SimulationDataContext.ts
 const CpuUsageChart = () => {
   const { samples } = useSimulationDataContext();
 
-  console.log(samples, samples.length);
-
   return (
     <ChartSkeleton
       icon={<Cpu size={"1rem"} />}

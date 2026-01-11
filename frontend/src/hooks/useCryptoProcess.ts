@@ -23,10 +23,15 @@ export const useCryptoProcess = () => {
   const [currentFileIndex, setCurrentFileIndex] = useState<number>(-1);
 
   // Race state for currently processed file
-  const [raceState, setRaceState] = useState<FileRaceState | null>(null);
+  const [raceState, setRaceState] = useState<FileRaceState[]>([]);
+
+  // Determine if the current file is processed
+  const [isFileProcessed, setIsFileProcessed] = useState<boolean>(false);
 
   // If race is running
   const [isRunning, setIsRunning] = useState<boolean>(false);
+
+  const currentFile = raceState[currentFileIndex];
 
   const configRef = useRef<any>(null);
 
@@ -49,6 +54,25 @@ export const useCryptoProcess = () => {
     });
 
   useEffect(() => {
+    if (currentFile && currentFile.aes.finished && currentFile.rsa.finished) {
+      setIsFileProcessed(true);
+
+      setRaceState((prev) =>
+        prev.map((rs, index) => {
+          if (index !== currentFileIndex) return rs;
+
+          return {
+            ...rs,
+            status: "completed",
+          };
+        }),
+      );
+    } else {
+      setIsFileProcessed(false);
+    }
+  }, [raceState]);
+
+  useEffect(() => {
     if (!lastJsonMessage) return;
 
     const msg = lastJsonMessage;
@@ -68,36 +92,42 @@ export const useCryptoProcess = () => {
   }, [lastJsonMessage]);
 
   const updateRaceMetrics = (alg: Algorithm, data: MetricDTO) => {
-    setRaceState((prev) => {
-      if (!prev) return null;
+    setRaceState((prev) =>
+      prev.map((rs, index) => {
+        if (index !== currentFileIndex) return rs;
 
-      return {
-        ...prev,
-        [alg.toLowerCase()]: {
-          ...prev[alg.toLowerCase() as "aes" | "rsa"],
-          progress: data.progress,
-          cpu: data.cpu_usage,
-          throughput: data.throughput,
-        },
-      };
-    });
+        if (rs.status === "skipped" || rs.status === "completed") return rs;
+
+        return {
+          ...rs,
+          [alg.toLowerCase()]: {
+            ...rs[alg.toLowerCase() as "aes" | "rsa"],
+            progress: data.progress,
+            cpu: data.cpu_usage,
+            throughput: data.throughput,
+          },
+        };
+      }),
+    );
   };
 
   const completeAlgorithm = (alg: Algorithm, url?: string, time?: number) => {
-    setRaceState((prev) => {
-      if (!prev) return null;
+    setRaceState((prev) =>
+      prev.map((rs, index) => {
+        if (index !== currentFileIndex) return rs;
 
-      return {
-        ...prev,
-        [alg.toLowerCase()]: {
-          ...prev[alg.toLowerCase() as "aes" | "rsa"],
-          finished: true,
-          progress: 100,
-          downloadUrl: url,
-          time,
-        },
-      };
-    });
+        return {
+          ...rs,
+          [alg.toLowerCase()]: {
+            ...rs[alg.toLowerCase() as "aes" | "rsa"],
+            finished: true,
+            progress: 100,
+            downloadUrl: url,
+            time,
+          },
+        };
+      }),
+    );
   };
 
   const initializeSession = (
@@ -106,10 +136,22 @@ export const useCryptoProcess = () => {
     config: any,
   ) => {
     setSessionId(sessId);
+
     setFileQueue(files);
+
+    setRaceState(
+      files.map((file) => ({
+        fileId: file.id,
+        fileName: file.name,
+        fileSize: file.size,
+        status: "pending",
+        aes: { progress: 0, cpu: 0, throughput: 0, finished: false },
+        rsa: { progress: 0, cpu: 0, throughput: 0, finished: false },
+      })),
+    );
+
     configRef.current = config;
 
-    setRaceState(null);
     setIsRunning(false);
   };
 
@@ -119,20 +161,40 @@ export const useCryptoProcess = () => {
     setIsRunning(true);
   };
 
+  const skipRsa = () => {
+    setRaceState((prev) =>
+      prev.map((rs, index) => {
+        if (index !== currentFileIndex) return rs;
+
+        return {
+          ...rs,
+          status: "skipped",
+        };
+      }),
+    );
+
+    // setIsFileProcessed(true);
+
+    skipToNextFile();
+  };
+
   const processNextFile = (index: number) => {
     if (index >= fileQueue.length) return;
 
     const file = fileQueue[index];
     setCurrentFileIndex(index);
+    setIsFileProcessed(false);
 
-    setRaceState({
-      fileId: file.id,
-      fileName: file.name,
-      fileSize: file.size,
-      status: "processing",
-      aes: { progress: 0, cpu: 0, throughput: 0, finished: false },
-      rsa: { progress: 0, cpu: 0, throughput: 0, finished: false },
-    });
+    setRaceState((prev) =>
+      prev.map((rs, rsIndex) => {
+        if (rsIndex !== index) return rs;
+
+        return {
+          ...rs,
+          status: "processing",
+        };
+      }),
+    );
 
     const payload: StartRaceCommand = {
       command: "START_RACE",
@@ -153,6 +215,7 @@ export const useCryptoProcess = () => {
     sendJsonMessage(payload);
 
     const nextIndex = currentFileIndex + 1;
+
     if (nextIndex < fileQueue.length) {
       processNextFile(nextIndex);
     } else {
@@ -172,23 +235,26 @@ export const useCryptoProcess = () => {
 
     setIsRunning(false);
     setSocketUrl(null);
-    setRaceState(null);
     setSessionId(null);
+    setRaceState([]);
     setFileQueue([]);
     setCurrentFileIndex(-1);
   };
 
   return {
     config: configRef.current,
-    fileQueue,
+    isFileProcessed,
+    fileQueue: raceState,
     isSessionInitialized: sessionId !== null,
     isConnected: readyState === ReadyState.OPEN,
     isRunning,
-    currentFile: raceState,
+    currentFile,
+    currentFileIndex,
     queueProgress: { current: currentFileIndex + 1, total: fileQueue.length },
     initializeSession,
     startProcessing,
     skipToNextFile,
+    skipRsa,
     stopAll,
   };
 };

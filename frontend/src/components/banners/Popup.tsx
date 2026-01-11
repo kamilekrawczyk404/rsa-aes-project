@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode, useState } from "react";
+import { useEffect, type ReactNode } from "react";
 import {
   FADE_OUT_TIMEOUT,
   MAX_DISPLAYED_POPUPS,
@@ -19,8 +19,8 @@ export interface PopupProps {
   title: string;
   description?: string;
   body?: ReactNode;
+  type?: BannerType;
   fadeOut?: boolean;
-  type: BannerType;
 }
 
 const Popup = ({
@@ -86,51 +86,51 @@ const Popup = ({
         bottom: 0,
         right: 0,
       }}
-      className={`overflow-hidden w-72 rounded-lg border shadow-sm p-3 flex gap-3 transition-all duration-300
+      className={`overflow-hidden w-96 rounded-lg border shadow-sm p-3 flex transition-all duration-300 flex-col
         ${styling.border} ${styling.background} ${styling.shadow}
         ${fadeOut ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0"}
       `}
       role="alert"
     >
-      {/* Warstwa Gradientu */}
       <div
         className={`absolute inset-0 pointer-events-none bg-gradient-to-br ${styling.gradientFrom} to-transparent opacity-60`}
       />
 
-      {/* Ikona */}
-      <div className="flex-shrink-0 relative">
-        <div
-          className={`h-10 w-10 rounded-full flex items-center justify-center ${styling.iconBg}`}
-        >
-          <IconComponent className={`h-5 w-5 ${styling.iconColor}`} />
-        </div>
-      </div>
-
-      {/* Treść */}
-      <div className="flex-1 flex flex-col relative min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <h6
-            className={`font-semibold text-sm leading-tight pt-0.5 ${styling.titleColor}`}
+      <div className={"flex gap-3"}>
+        <div className="flex-shrink-0 relative">
+          <div
+            className={`h-10 w-10 rounded-full flex items-center justify-center ${styling.iconBg}`}
           >
-            {title}
-          </h6>
-          <Button.Close
-            onClick={() => closePopup(id)}
-            className={`${styling.mutedColor} hover:text-slate-900 transition-colors`}
-          >
-            <X />
-          </Button.Close>
+            <IconComponent className={`h-5 w-5 ${styling.iconColor}`} />
+          </div>
         </div>
 
-        {description && (
-          <p className={`text-xs mt-1 ${styling.mutedColor} break-words`}>
-            {description}
-          </p>
-        )}
+        {/* Treść */}
+        <div className="flex-1 flex flex-col relative min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <h6
+              className={`font-semibold text-sm leading-tight pt-0.5 ${styling.titleColor}`}
+            >
+              {title}
+            </h6>
+            <Button.Close
+              onClick={() => closePopup(id)}
+              className={`${styling.mutedColor} hover:text-slate-900 transition-colors`}
+            >
+              <X />
+            </Button.Close>
+          </div>
+
+          {description && (
+            <p className={`text-xs mt-1 ${styling.mutedColor} break-words`}>
+              {description}
+            </p>
+          )}
+        </div>
 
         {/* Custom Body (np. przyciski akcji) */}
-        {body && <div className="mt-3 w-full">{body}</div>}
       </div>
+      {body && <div className="mt-3 w-full">{body}</div>}
     </motion.div>
   );
 };

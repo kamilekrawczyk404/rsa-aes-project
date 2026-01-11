@@ -5,6 +5,7 @@ import {
   Gauge,
   KeyRound,
   Settings,
+  SkipForward,
   TextSearch,
   Timer,
 } from "lucide-react";
@@ -49,7 +50,7 @@ const tableRows = [
 
 const SummaryTable = () => {
   const { average } = useSimulationDataContext();
-  const { currentFile, config } = useCrypto();
+  const { currentFile, config, skipRsa } = useCrypto();
 
   return (
     <Container className={"!p-0 overflow-x-auto"}>
@@ -74,10 +75,28 @@ const SummaryTable = () => {
             <div
               key={alg}
               className={
-                "relative p-2 font-normal text-center border-l-[1px] border-slate-200"
+                "relative p-2 font-normal flex gap-2 items-center border-l-[1px] border-slate-200"
               }
             >
               {alg}
+              {alg === "RSA" &&
+                currentFile &&
+                !currentFile.rsa.finished &&
+                currentFile.aes.finished && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className=""
+                  >
+                    <button
+                      onClick={() => skipRsa()}
+                      className="flex items-center gap-1 px-2 h-6 bg-slate-800 text-white rounded-md text-xs font-semibold hover:bg-slate-700 transition-all border border-white"
+                    >
+                      <SkipForward size={14} />
+                      Pomiń RSA
+                    </button>
+                  </motion.div>
+                )}
             </div>
           ))}
         </div>
@@ -134,26 +153,23 @@ const renderTableRow = (
       }
 
       element = (
-        <div
-          className={
-            "relative rounded-md overflow-hidden w-full h-full bg-blue-50 border-[1px] border-slate-200"
-          }
-        >
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: width + "%" }}
-            transition={{
-              duration: 0.3,
-              type: "spring",
-            }}
-            className={`absolute left-0 inset-y-0 transition-colors ${backgroundColor}`}
+        <div className={"relative flex gap-1 items-center"}>
+          <span className={"w-10"}>{width.toFixed()}%</span>
+          <div
+            className={
+              "relative rounded-full overflow-hidden w-full bg-blue-50 border-[1px] border-slate-200 h-4"
+            }
           >
-            <span
-              className={"absolute top-1/2 -translate-y-1/2 left-1 text-xs"}
-            >
-              {width.toFixed()}%
-            </span>
-          </motion.div>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: width + "%" }}
+              transition={{
+                duration: 0.3,
+                type: "tween",
+              }}
+              className={`absolute left-0 top-0 h-full transition-colors ${backgroundColor}`}
+            ></motion.div>
+          </div>
         </div>
       );
       break;

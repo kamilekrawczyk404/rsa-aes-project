@@ -14,7 +14,7 @@ export const FADE_OUT_TIMEOUT = 3000;
 
 type PopUpContextValues = {
   popups: PopupProps[];
-  addNewPopup: (popup: PopupProps) => void;
+  addNewPopup: (popup: Omit<PopupProps, "id" | "position">) => string;
   closePopup: (id: string) => void;
 };
 
@@ -25,9 +25,11 @@ export const PopupProvider = ({ children }: { children: ReactNode }) => {
 
   const addNewPopup = useCallback(
     (popup: Omit<PopupProps, "id" | "position">) => {
+      const id = uuidv4();
+
       setPopups((prev) => {
         const newPopUp: PopupProps = {
-          id: uuidv4(),
+          id,
           position: 0,
           ...popup,
         };
@@ -41,6 +43,8 @@ export const PopupProvider = ({ children }: { children: ReactNode }) => {
           ...sliced.map((popup, index) => ({ ...popup, position: index + 1 })),
         ];
       });
+
+      return id;
     },
     [],
   );
