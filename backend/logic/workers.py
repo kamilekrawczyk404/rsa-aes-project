@@ -5,9 +5,11 @@ import os
 
 def encryption_worker(algo, file_id, file_path, config, queue, stop_event):
     process = psutil.Process(os.getpid())
+    process.cpu_percent(None)
     file_size = os.path.getsize(file_path)
     processed_bytes = 0
     start_time = time.time()
+    last_metric_time = start_time
 
     if algo == "AES":
         chunk_size = 64 * 1024
@@ -45,21 +47,22 @@ def encryption_worker(algo, file_id, file_path, config, queue, stop_event):
                 processed_bytes += len(chunk)
 
                 current_time = time.time()
-                elapsed = current_time - start_time
-                throughput = (processed_bytes / (1024 * 1024)) / elapsed if elapsed > 0 else 0
+                if current_time - last_metric_time >= 0.1:
+                    elapsed = current_time - start_time
+                    throughput = (processed_bytes / (1024 * 1024)) / elapsed if elapsed > 0 else 0
 
-                queue.put({
-                    "file_id": file_id,
-                    "type": "metric_update",
-                    "algorithm": algo,
-                    "timestamp": int(current_time),
-                    "data": {
-                        "progress": round((processed_bytes / file_size) * 100, 2),
-                        "cpu_usage": process.cpu_percent(),
-                        "throughput": round(throughput, 2),
-                        "processed_bytes": processed_bytes
-                    }
-                })
+                    queue.put({
+                        "file_id": file_id,
+                        "type": "metric_update",
+                        "algorithm": algo,
+                        "timestamp": int(current_time),
+                        "data": {
+                            "progress": round((processed_bytes / file_size) * 100, 2),
+                            "cpu_usage": process.cpu_percent(),
+                            "throughput": round(throughput, 2),
+                            "processed_bytes": processed_bytes
+                        }
+                    })
 
         queue.put({
             "file_id": file_id,
