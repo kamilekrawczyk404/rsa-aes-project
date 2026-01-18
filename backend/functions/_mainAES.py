@@ -61,8 +61,8 @@ def main(inputText, key):
             for j in range(4):
                 textMatrix[i][j] = textMatrix[i][j] ^ expandedKey[4 * (r + 1) + i][j]
 
-    for row in textMatrix:
-        print([hex(b) for b in row])
+    #for row in textMatrix:
+        #print([hex(b) for b in row])
     return textMatrix
 
 #if __name__ == "__main__":

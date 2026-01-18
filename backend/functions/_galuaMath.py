@@ -3,10 +3,10 @@ def backToGalua(c : int):
     special = special << (c.bit_length() - 9) # przesunięcie bitowe o tyle ile nasze c (wynik) wykracza poza wielokość wielomianu nierozkładalnego (9 bitów)
     c = c ^ special
     if (c.bit_length() > 8): # jeżeli nadal wykracza wywołujemy funkcję ponownie na zmieniejosznym już uprzednio c
-        c =  backToGalua(c) # tu zadziałałoby też  'return backToGalua(c)' ale nie rozumiem tego do końca
+        c =  backToGalua(c)
     return c
 
-def multiply(a: int, b: int) -> int: # tutaj muszę pracować na intach bo python nie obsługuje typu binarnego
+def multiply(a: int, b: int) -> int:
     table = []
     for i in range(b.bit_length()):  # przejdź przez wszystkie bity
         bit = (b >> i) & 1 # to jakby patrzy na i-ty bit od tyłu i wyciąga wartość ciąg długości 1 od tego miejsca

@@ -10,7 +10,6 @@ def AES_ECB_encrypt(plaintext, key_length): # plaintext to string, key to 128 bi
 
     key = os.urandom(key_bytes_len)
     key_int = int.from_bytes(key, 'big')
-    print("Użyty klucz (hex):", key.hex())
     # padding -> w standardzie PKCS#7
 
     if len(input) % 16 != 0:
@@ -38,10 +37,11 @@ def AES_ECB_encrypt(plaintext, key_length): # plaintext to string, key to 128 bi
         else:
             flat_output.append(item)
 
-    return bytes(flat_output)
+    return bytes(flat_output), key.hex()
 
-result = (AES_ECB_encrypt("Hello, World!", 256))
-print("wynik:", result.hex())
+result, key = (AES_ECB_encrypt("Hello, World!", 128))
+#print("wynik:", result.hex())
+#print("klucz:", key)
 #print("\n")
 #for row in result:
 #    print([hex(x) for x in row])
