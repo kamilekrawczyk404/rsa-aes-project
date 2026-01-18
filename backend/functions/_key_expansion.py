@@ -78,6 +78,6 @@ def getExpandedKey(smallkey):
       newRow = xorIt(newRow, w[-4])
       w.append(newRow)
 
-  for row in w:
-    print([hex(b) for b in row])
+  #for row in w:
+    #print([hex(b) for b in row])
   return w
