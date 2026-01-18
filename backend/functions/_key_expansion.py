@@ -49,9 +49,9 @@ def getExpandedKey(smallkey):
       for j in range(4):
         w[i][j] = key_bytes[i*4 + j]
 
-  for row in w:
-      print([hex(b) for b in row])
-  print("\n")
+  #for row in w:
+      #print([hex(b) for b in row])
+  #print("\n")
 
   # tutaj zaczyna się kolejna eunda -> na tym etapie mam tablicę gdzie kolejne wiersze to kolejne wektory z rozszerzonym kluczem
 

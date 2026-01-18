@@ -1,30 +1,24 @@
-import _key_expansion
+import _key_expansion_192
 import _galuaMath
 
 def main(inputText, key):
-    #expandedKey = _key_expansion.getExpandedKey(0x3f7a9c12b4e6d09f5a2c7e8b1d4f6032)
-    #expandedKey = _key_expansion.getExpandedKey(0x41623323375879394c70517221325a26)
-    expandedKey = _key_expansion.getExpandedKey(key)
+    expandedKey = _key_expansion_192.getExpandedKey(key) 
+    
     inputBytes = inputText
-    #inputText = 0x69bc1c9fea029ebb23cb2164d75ef4be
-    #inputText = 0x6162636465666768696a6b6c6d6e6f70
-    #inputBytes = inputText.to_bytes(16, 'big')
     textMatrix = [[0 for _ in range(4)] for _ in range(4)]
-    for i in range(4): # dzielę tekst na tablicę 4 x 4 z pojedynczymi bajtami
+    
+    for i in range(4): 
       for j in range(4):
         textMatrix[i][j] = inputBytes[i*4 + j]
-# w tym miejscu mam dwa główne argumenty -> "expandedKey" oraz "textMatrix" obie w postaci macierzy zawierających bajty danych
 
-    for i in range(4): # okej, tutaj wykonywany jest pierwsze "key addition" z wykorzystaniem pierwotnego klucza
+    for i in range(4): 
        for j in range(4):
           textMatrix[i][j] = textMatrix[i][j] ^ expandedKey[i][j]
 
-    for r in range(10):
-        # sBox map
+    for r in range(12):
         for i in range(4):
             for j in range(4):
-                textMatrix[i][j] = _key_expansion.SBoxMap(textMatrix[i][j])
-        # shift row
+                textMatrix[i][j] = _key_expansion_192.SBoxMap(textMatrix[i][j])
         
         helperMatrix = [row.copy() for row in textMatrix]
         textMatrix[0][0] = helperMatrix[0][0]
@@ -44,9 +38,7 @@ def main(inputText, key):
         textMatrix[3][2] = helperMatrix[1][2]
         textMatrix[3][3] = helperMatrix[2][3]
 
-       # mixcol 
-       # problemem jest mnożenie macierzy -> jest niepoprawnie zaimplementowane -> niewłaściwie mnożone są macierze!!!!!!
-        if r != 9: # w ostatniej rundzie nie wykonuję mixcol
+        if r != 11: 
             constantsMatrix = [[0x02, 0x01, 0x01, 0x03], [0x03, 0x02, 0x01, 0x01], [0x01, 0x03, 0x02, 0x01], [0x01, 0x01, 0x03, 0x02]]
             helperMatrix2 = [[0 for _ in range(4)] for _ in range(4)]
             for i in range(4):
@@ -56,14 +48,11 @@ def main(inputText, key):
                             helperMatrix2[i][j] ^= _galuaMath.multiply(textMatrix[i][k], constantsMatrix[k][j])
             textMatrix = helperMatrix2
 
-        # key add
-        for i in range(4): # okej, tutaj wykonywany jest "key addition" z wykorzystaniem kolejnych kluczy
+        for i in range(4): 
             for j in range(4):
                 textMatrix[i][j] = textMatrix[i][j] ^ expandedKey[4 * (r + 1) + i][j]
 
-    #for row in textMatrix:
-        #print([hex(b) for b in row])
+    # for row in textMatrix:
+    #     print([hex(b) for b in row])
+        
     return textMatrix
-
-#if __name__ == "__main__":
-#    main()
