@@ -6,7 +6,6 @@ import os
 def AES_ECB_encrypt(plaintext, key_length): # plaintext to string, key to 128 bitowy ciąg (defacto int)
     input = plaintext.encode('utf-8') # zamiana na bajty
     key_bytes_len = key_length // 8
-    print("tekst wejściowy (hex):", input.hex())
 
     key = os.urandom(key_bytes_len)
     key_int = int.from_bytes(key, 'big')
