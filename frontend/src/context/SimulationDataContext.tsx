@@ -1,8 +1,14 @@
 import { createContext, type ReactNode, useContext } from "react";
-import useSimulationData from "../hooks/useSimulationData.ts";
+import prepareSimulationData, {
+  initialFileState,
+  type SimulationData,
+} from "../hooks/prepareSimulationData.ts";
 import { useCrypto } from "./CryptoContext.tsx";
 
-type ChartDataContextType = ReturnType<typeof useSimulationData>;
+type ChartDataContextType = {
+  simulationData: SimulationData[];
+  currentFileData: SimulationData;
+};
 
 const SimulationDataContext = createContext<ChartDataContextType | null>(null);
 
@@ -11,18 +17,25 @@ export const SimulationDataProvider = ({
 }: {
   children: ReactNode;
 }) => {
-  const { currentFile } = useCrypto();
-
-  const chartData = useSimulationData(currentFile);
+  const { currentFileIndex } = useCrypto();
+  const simulationData = prepareSimulationData();
 
   return (
-    <SimulationDataContext.Provider value={chartData}>
+    <SimulationDataContext.Provider
+      value={{
+        simulationData,
+        currentFileData:
+          currentFileIndex > -1
+            ? simulationData[currentFileIndex]
+            : initialFileState,
+      }}
+    >
       {children}
     </SimulationDataContext.Provider>
   );
 };
 
-export const useSimulationDataContext = () => {
+export const useSimulationData = () => {
   const context = useContext(SimulationDataContext);
 
   if (!context) {

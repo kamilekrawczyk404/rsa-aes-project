@@ -3,13 +3,14 @@ import { useCrypto } from "../../context/CryptoContext.tsx";
 import { motion } from "framer-motion";
 import Button from "../button/Button.tsx";
 import Container from "../../layouts/Container.tsx";
+import TextSlider from "../texts/TextSlider.tsx";
 
 const Header = () => {
-  const { isConnected, queueProgress, stopAll } = useCrypto();
+  const { isConnected, isRunning, queueProgress, stopAll } = useCrypto();
 
   return (
     <Container className="flex justify-between items-center">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 basis-full">
         <motion.div
           animate={{
             boxShadow: isConnected
@@ -29,12 +30,17 @@ const Header = () => {
             isConnected ? "bg-emerald-500" : "bg-amber-500"
           }`}
         />
-        <div>
-          <h2>
-            {isConnected
-              ? `Przetwarzanie pliku ${queueProgress.current} z ${queueProgress.total}`
-              : "Oczekiwanie na połączenie..."}
-          </h2>
+        <div className={"w-full"}>
+          <TextSlider
+            texts={{
+              hidden: <h2>Wszystkie pliki zostały przetworzone</h2>,
+              shown: (
+                <h2>{`Przetwarzanie pliku ${queueProgress.current} z ${queueProgress.total}`}</h2>
+              ),
+            }}
+            trigger={!isRunning}
+            className={"text-nowrap w-full"}
+          />
           <p className="text-sm text-slate-500">
             Sesja aktywna • WebSocket Secure
           </p>
@@ -42,7 +48,7 @@ const Header = () => {
       </div>
 
       <Button.Danger onClick={() => stopAll()} disabled={!isConnected}>
-        <span className={"inline-flex gap-2 items-center"}>
+        <span className={"inline-flex gap-2 items-center text-nowrap"}>
           <Square size={"1rem"} fill="currentColor" /> Zakończ sesję
         </span>
       </Button.Danger>

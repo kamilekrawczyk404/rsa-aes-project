@@ -1,10 +1,12 @@
 import { memo } from "react";
 import { Activity } from "lucide-react";
 import ChartSkeleton from "./ChartSkeleton.tsx";
-import { useSimulationDataContext } from "../../context/SimulationDataContext.tsx";
+import { useSimulationData } from "../../context/SimulationDataContext.tsx";
 
 const ThroughputChart = memo(() => {
-  const { samples } = useSimulationDataContext();
+  const {
+    currentFileData: { samples },
+  } = useSimulationData();
 
   return (
     <ChartSkeleton

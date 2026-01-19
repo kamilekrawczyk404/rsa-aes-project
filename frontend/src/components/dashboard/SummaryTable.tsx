@@ -1,5 +1,4 @@
 import { useCrypto } from "../../context/CryptoContext.tsx";
-import Container from "../../layouts/Container.tsx";
 import {
   Cpu,
   Gauge,
@@ -10,9 +9,11 @@ import {
   Timer,
 } from "lucide-react";
 import type { Algorithm, FileRaceState } from "../../types/crypto.ts";
-import { useSimulationDataContext } from "../../context/SimulationDataContext.tsx";
-import type { AverageData } from "../../hooks/useSimulationData.ts";
+import { useSimulationData } from "../../context/SimulationDataContext.tsx";
+import { type AverageData } from "../../hooks/prepareSimulationData.ts";
 import { motion } from "framer-motion";
+import { defaultTransition } from "../../framer/transitions.ts";
+import ComponentContainer from "../../layouts/ComponentContainer.tsx";
 
 const algorithms = ["AES", "RSA"] as Algorithm[];
 
@@ -49,37 +50,38 @@ const tableRows = [
 ];
 
 const SummaryTable = () => {
-  const { average } = useSimulationDataContext();
-  const { currentFile, config, skipRsa } = useCrypto();
+  const { currentFileData } = useSimulationData();
+  const { currentFile, config, skipRsa, isRunning } = useCrypto();
 
   return (
-    <Container className={"!p-0 overflow-x-auto"}>
-      <section className="flex items-center gap-2 border-b-[1px] border-slate-200 p-4">
-        <div className={`p-2 rounded-lg bg-blue-100 text-blue-700`}>
-          <TextSearch size={"1rem"} />
-        </div>
-        <div>
-          <h3 className="font-bold text-slate-700">
-            Podsumowanie wyników przetwarzania plików
-          </h3>
-          <p className="text-xs text-slate-400">
-            Przegląd wydajności algorytmów dla aktualnie przetwarzanego pliku
-          </p>
-        </div>
-      </section>
+    <ComponentContainer
+      className={"!p-0 overflow-x-auto"}
+      title={"Podsumowanie wyników przetwarzania plików"}
+      description={
+        "Przegląd wydajności algorytmów dla aktualnie przetwarzanego pliku"
+      }
+      icon={<TextSearch size={"1rem"} />}
+    >
       <section className={"border-b-[1px] border-slate-200 !w-full"}>
         {/*table header*/}
-        <div className={"grid grid-cols-[12rem_1fr_1fr]"}>
-          <div />
+        <div className={"grid grid-cols-[12rem_1fr_1fr] bg-blue-50"}>
+          <div
+            className={
+              "relative py-2 px-4 font-normal flex gap-2 items-center "
+            }
+          >
+            Algorytm
+          </div>
           {algorithms.map((alg) => (
             <div
               key={alg}
               className={
-                "relative p-2 font-normal flex gap-2 items-center border-l-[1px] border-slate-200"
+                "relative px-4 py-2 font-normal flex gap-2 items-center border-l-[1px] border-slate-200"
               }
             >
               {alg}
-              {alg === "RSA" &&
+              {isRunning &&
+                alg === "RSA" &&
                 currentFile &&
                 !currentFile.rsa.finished &&
                 currentFile.aes.finished && (
@@ -105,7 +107,9 @@ const SummaryTable = () => {
       <section>
         {tableRows.map((row) => (
           <div
-            className={"grid grid-cols-[12rem_1fr_1fr] text-sm even:bg-blue-50"}
+            className={
+              "grid grid-cols-[12rem_1fr_1fr] text-sm hover:bg-slate-50 transition-colors [&:not(:last-of-type)]:border-b-[1px] border-slate-200"
+            }
             key={row.type}
           >
             <div className={"text-sm"}>
@@ -115,13 +119,13 @@ const SummaryTable = () => {
               renderTableRow(alg, row.type, {
                 config,
                 file: currentFile!,
-                average,
+                average: currentFileData.average,
               }),
             )}
           </div>
         ))}
       </section>
-    </Container>
+    </ComponentContainer>
   );
 };
 
@@ -130,6 +134,8 @@ const renderTableRow = (
   type: string,
   data: { file: FileRaceState; config: any; average: AverageData },
 ) => {
+  const { isRunning } = useCrypto();
+
   const alg = algorithm.toLowerCase();
 
   let element;
@@ -163,10 +169,7 @@ const renderTableRow = (
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: width + "%" }}
-              transition={{
-                duration: 0.3,
-                type: "tween",
-              }}
+              transition={defaultTransition()}
               className={`absolute left-0 top-0 h-full transition-colors ${backgroundColor}`}
             ></motion.div>
           </div>
@@ -217,7 +220,9 @@ const renderTableRow = (
       } else {
         value = data.file?.rsa?.finished
           ? data.file.rsa.time + " s"
-          : "Proces nadal trwa...";
+          : isRunning
+            ? "Proces nadal trwa..."
+            : "N/A";
       }
 
       element = <span>{value}</span>;

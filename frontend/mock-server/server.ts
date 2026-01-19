@@ -11,6 +11,12 @@ interface MetricPayload {
   processed_bytes: number;
 }
 
+interface BatchSummary {
+  total_time: number;
+  total_files: number;
+  average_throughput: number;
+}
+
 interface WsResponse {
   type: "metric_update" | "process_finished" | "error" | "batch_complete";
   algorithm?: "AES" | "RSA";
@@ -18,6 +24,7 @@ interface WsResponse {
   data?: MetricPayload;
   total_time?: number;
   download_url?: string;
+  summary?: BatchSummary;
 }
 
 interface StartCommand {
@@ -30,7 +37,16 @@ interface StartCommand {
 interface CommandMessage {
   command: "START_RACE" | "NEXT_FILE" | "STOP_ALL";
   file_id?: string;
+  session_id?: string;
 }
+
+interface SessionState {
+  totalFiles: number;
+  processedCount: number;
+  startTime: number;
+}
+
+const activeSessions = new Map<string, SessionState>();
 
 const app = express();
 const port = 8000;
@@ -43,7 +59,7 @@ const upload = multer({ storage });
 
 app.get("/api/config", (req: Request, res: Response) => {
   res.json({
-    max_file_size_bytes: 10 * 1024 * 1024,
+    max_file_size_bytes: 1024 * 1024 * 1024, // 1GB
     allowed_extensions: [".jpg", ".png", ".txt", ".pdf", ".docx"],
   });
 });
@@ -58,14 +74,24 @@ app.post(
       return res.status(400).json({ error: "No files uploaded" });
     }
 
+    const sessionId = "sess_" + Math.random().toString(36).substring(2, 15);
+
+    activeSessions.set(sessionId, {
+      totalFiles: files.length,
+      processedCount: 0,
+      startTime: Date.now(),
+    });
+
+    console.log(`📦 Utworzono sesję: ${sessionId}, plików: ${files.length}`);
+
     const fakeFiles = files.map((f) => ({
-      id: "mock_file_" + Math.random().toString(36).substring(2, 9),
+      id: "file_" + Math.random().toString(36).substring(2, 9),
       name: f.originalname,
       size: f.size,
     }));
 
     res.json({
-      session_id: "mock_session_" + Date.now(),
+      session_id: sessionId,
       files: fakeFiles,
     });
   },
@@ -80,6 +106,8 @@ wss.on("connection", (ws: WebSocket) => {
   let aesInterval: NodeJS.Timeout | null = null;
   let rsaInterval: NodeJS.Timeout | null = null;
 
+  let currentSessionId: string | null = null;
+
   const clearSimulation = () => {
     if (aesInterval) clearInterval(aesInterval);
     if (rsaInterval) clearInterval(rsaInterval);
@@ -92,14 +120,35 @@ wss.on("connection", (ws: WebSocket) => {
       const message = JSON.parse(rawMessage.toString()) as CommandMessage;
       console.log("📩 WS Command:", message.command);
 
-      if (message.command === "START_RACE" && message.file_id) {
+      if (
+        message.command === "START_RACE" &&
+        message.file_id &&
+        message.session_id
+      ) {
+        currentSessionId = message.session_id;
         clearSimulation();
-        startRaceSimulation(ws, message.file_id);
+
+        const session = activeSessions.get(message.session_id);
+        if (session) {
+          session.processedCount++;
+          console.log(
+            `📊 Sesja ${message.session_id}: Przetwarzanie pliku ${session.processedCount}/${session.totalFiles}`,
+          );
+        }
+
+        startRaceSimulation(ws, message.file_id, message.session_id);
       }
 
-      if (message.command === "NEXT_FILE" || message.command === "STOP_ALL") {
-        console.log("🛑 Zatrzymywanie symulacji...");
+      if (message.command === "NEXT_FILE") {
         clearSimulation();
+      }
+
+      if (message.command === "STOP_ALL") {
+        console.log("🛑 Zatrzymywanie symulacji i czyszczenie sesji...");
+        clearSimulation();
+        if (currentSessionId) {
+          activeSessions.delete(currentSessionId);
+        }
       }
     } catch (e) {
       console.error("Błąd parsowania JSON:", e);
@@ -111,26 +160,28 @@ wss.on("connection", (ws: WebSocket) => {
     clearSimulation();
   });
 
-  const startRaceSimulation = (socket: WebSocket, fileId: string) => {
+  const startRaceSimulation = (
+    socket: WebSocket,
+    fileId: string,
+    sessionId: string,
+  ) => {
     let aesProgress = 0;
     let rsaProgress = 0;
 
     aesInterval = setInterval(() => {
-      aesProgress += Math.random() * 8 + 2;
+      aesProgress += Math.random() * 16 + 15;
 
       if (aesProgress >= 100) {
         aesProgress = 100;
-
         if (aesInterval) clearInterval(aesInterval);
 
         const finishMsg: WsResponse = {
           type: "process_finished",
           algorithm: "AES",
           file_id: fileId,
-          total_time: 1.45,
+          total_time: 0.85,
           download_url: "http://localhost:8000/fake_download_aes.enc",
         };
-
         socket.send(JSON.stringify(finishMsg));
       } else {
         const metricMsg: WsResponse = {
@@ -139,33 +190,58 @@ wss.on("connection", (ws: WebSocket) => {
           file_id: fileId,
           data: {
             progress: parseFloat(aesProgress.toFixed(1)),
-            cpu_usage: parseFloat((Math.random() * 10 + 5).toFixed(1)), // 5-15%
-            throughput: parseFloat((Math.random() * 50 + 250).toFixed(1)), // 250-300 MB/s
+            cpu_usage: parseFloat((Math.random() * 10 + 5).toFixed(1)),
+            throughput: parseFloat((Math.random() * 50 + 450).toFixed(1)),
             processed_bytes: Math.floor(aesProgress * 1024 * 1024),
           },
         };
-
         socket.send(JSON.stringify(metricMsg));
       }
     }, 100);
 
     rsaInterval = setInterval(() => {
-      rsaProgress += 0.05 + Math.random() * 5;
+      rsaProgress += Math.random() * 3 + 10;
 
       if (rsaProgress >= 100) {
         rsaProgress = 100;
-
         if (rsaInterval) clearInterval(rsaInterval);
 
         const finishMsg: WsResponse = {
           type: "process_finished",
           algorithm: "RSA",
           file_id: fileId,
-          total_time: 20.45,
+          total_time: 8.45,
           download_url: "http://localhost:8000/fake_download_rsa.enc",
         };
-
         socket.send(JSON.stringify(finishMsg));
+
+        const session = activeSessions.get(sessionId);
+
+        if (session && session.processedCount >= session.totalFiles) {
+          console.log(
+            "🏁 Wszystkie pliki przetworzone. Wysyłam batch_complete.",
+          );
+
+          const totalTime = (Date.now() - session.startTime) / 1000;
+
+          const batchMsg: WsResponse = {
+            type: "batch_complete",
+            summary: {
+              total_time: parseFloat(totalTime.toFixed(2)),
+              total_files: session.totalFiles,
+              average_throughput: 145.5,
+            },
+          };
+
+          setTimeout(() => {
+            if (socket.readyState === WebSocket.OPEN) {
+              console.log("📤 Wysyłam batch_complete:", batchMsg);
+              socket.send(JSON.stringify(batchMsg));
+            }
+
+            activeSessions.delete(sessionId);
+          }, 500);
+        }
       } else {
         const metricMsg: WsResponse = {
           type: "metric_update",
@@ -173,15 +249,14 @@ wss.on("connection", (ws: WebSocket) => {
           file_id: fileId,
           data: {
             progress: parseFloat(rsaProgress.toFixed(2)),
-            cpu_usage: parseFloat((Math.random() * 5 + 95).toFixed(1)),
-            throughput: parseFloat((Math.random() * 0.2).toFixed(2)),
+            cpu_usage: parseFloat((Math.random() * 15 + 80).toFixed(1)),
+            throughput: parseFloat((Math.random() * 0.5 + 1.5).toFixed(2)),
             processed_bytes: Math.floor(rsaProgress * 1024),
           },
         };
-
         socket.send(JSON.stringify(metricMsg));
       }
-    }, 100);
+    }, 200);
   };
 });
 

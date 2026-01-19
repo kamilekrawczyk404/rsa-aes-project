@@ -34,17 +34,6 @@ const ProcessButton = ({
     >
       {children}
     </SkeletonButton>
-    // <motion.button
-    //   disabled={disabled}
-    //   type={"button"}
-    //   onClick={onClick}
-    //   whileTap={{
-    //     scale: 0.99,
-    //   }}
-    //   className={` transition-colors h-10 px-3 rounded-lg ${className}`}
-    // >
-    //   {children}
-    // </motion.button>
   );
 };
 

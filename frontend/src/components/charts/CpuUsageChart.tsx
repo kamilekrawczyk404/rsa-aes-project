@@ -1,9 +1,11 @@
 import ChartSkeleton from "./ChartSkeleton.tsx";
 import { Cpu } from "lucide-react";
-import { useSimulationDataContext } from "../../context/SimulationDataContext.tsx";
+import { useSimulationData } from "../../context/SimulationDataContext.tsx";
 
 const CpuUsageChart = () => {
-  const { samples } = useSimulationDataContext();
+  const {
+    currentFileData: { samples },
+  } = useSimulationData();
 
   return (
     <ChartSkeleton

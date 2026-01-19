@@ -1,5 +1,4 @@
 // HTTP GET /api/config
-
 export interface SystemConfig {
   max_file_size_bytes: number;
   allowed_extensions: string[];
@@ -12,13 +11,18 @@ export interface UploadedFile {
   size: number;
 }
 
+export interface BatchSummary {
+  total_time: number;
+  total_files: number;
+  average_throughput: number;
+}
+
 export interface UploadResponse {
   session_id: string;
   files: UploadedFile[];
 }
 
 // WebSocket Messages
-
 export type Algorithm = "AES" | "RSA";
 
 export const AES_MODES = ["ECB", "CBC", "CFB", "OFB", "CTR"] as const;
@@ -102,7 +106,7 @@ export interface IncomingWebSocketMessage {
     | "metric_update"
     | "process_finished"
     | "file_start"
-    | "batch_completed"
+    | "batch_complete"
     | "error";
   file_id?: string;
   algorithm?: Algorithm;

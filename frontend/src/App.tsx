@@ -11,6 +11,8 @@ import { CryptoProcessProvider } from "./context/CryptoContext.tsx";
 import DevToolbar from "./components/DevToolbar.tsx";
 import { SimulationDataProvider } from "./context/SimulationDataContext.tsx";
 import { PopupProvider } from "./context/PopUpContext.tsx";
+import { ModalProvider } from "./context/ModalContext.tsx";
+import { DevModalTrigger } from "./components/DevModalTrigger.tsx";
 
 export type View = "welcome" | "configurator" | "dashboard";
 
@@ -58,20 +60,23 @@ function App() {
         <CryptoProcessProvider>
           <SimulationDataProvider>
             <PopupProvider>
-              <DevToolbar />
-              <Routes>
-                <Route path={"/"} element={<DashboardLayout />}>
-                  {Object.entries(menuItems).map(([key, item]) => (
-                    <Route
-                      key={key}
-                      index={key === "welcome"}
-                      path={item.link.substring(1)}
-                      element={item.element}
-                    />
-                  ))}
-                  <Route path={"*"} element={<Navigate to={"/"} replace />} />
-                </Route>
-              </Routes>
+              <ModalProvider>
+                <DevModalTrigger />
+                <DevToolbar />
+                <Routes>
+                  <Route path={"/"} element={<DashboardLayout />}>
+                    {Object.entries(menuItems).map(([key, item]) => (
+                      <Route
+                        key={key}
+                        index={key === "welcome"}
+                        path={item.link.substring(1)}
+                        element={item.element}
+                      />
+                    ))}
+                    <Route path={"*"} element={<Navigate to={"/"} replace />} />
+                  </Route>
+                </Routes>
+              </ModalProvider>
             </PopupProvider>
           </SimulationDataProvider>
         </CryptoProcessProvider>
