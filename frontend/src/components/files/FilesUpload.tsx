@@ -2,14 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FileImage, FileQuestionMark, FileText, FileUp, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { FileWithMeta } from "../../types/crypto.ts";
+import { useSystemConfig } from "../../hooks/useSystemConfig.ts";
+import Container from "../../layouts/Container.tsx";
+import Banner from "../banners/Banner.tsx";
 
-const MAX_FILE_SIZE = 1024 * 1024 * 10; // 10MB
-
-const ACCEPTED_FILE_TYPES = [".jpg", ".png", ".txt", ".pdf", ".docx"] as const;
-
-type AcceptedFileType = (typeof ACCEPTED_FILE_TYPES)[number];
-
-const getFileIcon = (fileExtension: AcceptedFileType) => {
+const getFileIcon = (fileExtension: string) => {
   switch (fileExtension) {
     case ".jpg":
     case ".png":
@@ -39,6 +36,11 @@ type FilesUploadProps = {
 };
 
 const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
+  const { data: config, isLoading, isError } = useSystemConfig();
+
+  const maxFileSize = config?.max_file_size_bytes || 0;
+  const allowedExtensions = config?.allowed_extensions || [];
+
   const refFileInput = useRef<HTMLInputElement>(null);
 
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -94,10 +96,18 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
   const processFiles = useCallback((newFiles: File[]) => {
     const validFiles = newFiles.filter((file) => {
       const extension = "." + file.name.split(".").pop()?.toLowerCase();
-      const isTypeValid = ACCEPTED_FILE_TYPES.includes(
-        extension as AcceptedFileType,
-      );
-      const isSizeValid = file.size <= MAX_FILE_SIZE;
+
+      const isTypeValid = allowedExtensions.includes(extension);
+      const isSizeValid = file.size <= maxFileSize;
+
+      if (!isSizeValid)
+        console.warn(
+          `File ${file.name} exceeds the maximum file size - ${maxFileSize} bytes`,
+        );
+      if (!isTypeValid)
+        console.warn(
+          `File ${file.name} has unsupported file extension - ${extension}`,
+        );
 
       return isTypeValid && isSizeValid;
     });
@@ -157,8 +167,19 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
     });
   };
 
+  if (isLoading) return <div>Ładowanie konfiguracji...</div>;
+  if (isError)
+    return (
+      <Banner.Error
+        title={"Nastąpił błąd w czasie pobierania konfiguracji"}
+        description={
+          "Upewnij się, że masz dostęp do internetu. Jeżeli problem nie ustępuje skontaktuj się z administratorem aplikacji."
+        }
+      />
+    );
+
   return (
-    <section className={`${className}`}>
+    <Container className={`${className}`}>
       <motion.div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -196,10 +217,10 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
 
       <p className={"text-slate-500 text-sm mt-1"}>
         Akcepowalne pliki:{" "}
-        {ACCEPTED_FILE_TYPES.map((t, index) => (
+        {allowedExtensions.map((t, index) => (
           <span key={t}>
             {t}
-            {index !== ACCEPTED_FILE_TYPES.length - 1 && ", "}
+            {index !== allowedExtensions.length - 1 && ", "}
           </span>
         ))}
       </p>
@@ -210,102 +231,112 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
       >
         <AnimatePresence mode={"popLayout"}>
           {fileList.map((fileMeta) => (
-            <motion.div
-              layout
+            <FileInstance
               key={fileMeta.id}
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-                y: 0,
-              }}
-              exit={{
-                opacity: 0,
-                scale: 0.9,
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 300,
-                damping: 25,
-              }}
-              className={
-                "relative rounded-lg overflow-hidden border-[1px] border-slate-300 bg-slate-100 group lg:p-4 p-2 place-content-center"
-              }
-            >
-              <motion.div
-                initial={{ marginBottom: ".5rem" }}
-                animate={{
-                  marginBottom: fileMeta.status === "completed" ? 0 : ".5rem",
-                }}
-                transition={{
-                  delay: 0.1,
-                }}
-                className={"flex justify-between items-center gap-2"}
-              >
-                <div className={"flex items-center gap-2"}>
-                  <span className={"text-blue-700"}>
-                    {getFileIcon(
-                      ("." +
-                        fileMeta.file.name
-                          .split(".")
-                          .pop()
-                          ?.toLowerCase()) as AcceptedFileType,
-                    )}
-                  </span>
-                  <div>
-                    <p className={"text-sm font-semibold line-clamp-2"}>
-                      {fileMeta.file.name}
-                    </p>
-                    <div className={"text-slate-500 text-xs"}>
-                      <span>{getFileSize(fileMeta.file)}</span>
-                      {fileMeta.status === "uploading" && (
-                        <span>• Przetwarzanie...</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeFile(fileMeta.id);
-                  }}
-                >
-                  <X className={"text-slate-500"} size={"1.5rem"} />
-                </button>
-              </motion.div>
-
-              <motion.div
-                layout
-                initial={{ opacity: 1, height: "auto" }}
-                animate={{
-                  opacity: fileMeta.status === "completed" ? 0 : 1,
-                  height: fileMeta.status === "completed" ? 0 : "auto",
-                }}
-                transition={{
-                  height: { delay: 0.1 },
-                  duration: 0.3,
-                }}
-                className={"w-full flex gap-2 items-center"}
-              >
-                <div className={"relative h-2 rounded-md bg-slate-50 w-full "}>
-                  <motion.div
-                    className={
-                      "absolute left-0 top-0 h-full bg-blue-700 rounded-md"
-                    }
-                    initial={{ width: 0 }}
-                    animate={{ width: `${fileMeta.progress}%` }}
-                    transition={{ ease: "linear" }}
-                  />
-                </div>
-                <span className={"text-sm text-slate-500 w-9 text-left"}>
-                  {fileMeta.progress}%
-                </span>
-              </motion.div>
-            </motion.div>
+              fileMeta={fileMeta}
+              remove={removeFile}
+            />
           ))}
         </AnimatePresence>
       </motion.div>
-    </section>
+    </Container>
+  );
+};
+
+const FileInstance = ({
+  fileMeta,
+  remove,
+}: {
+  fileMeta: FileWithMeta;
+  remove: (id: string) => void;
+}) => {
+  return (
+    <motion.div
+      layout
+      key={fileMeta.id}
+      initial={{ opacity: 0, scale: 0.8, y: 20 }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        y: 0,
+      }}
+      exit={{
+        opacity: 0,
+        scale: 0.9,
+      }}
+      transition={{
+        type: "spring",
+        stiffness: 300,
+        damping: 25,
+      }}
+      className={
+        "relative rounded-lg overflow-hidden border-[1px] border-blue-200 bg-blue-50 group lg:p-4 p-2 place-content-center"
+      }
+    >
+      <motion.div
+        initial={{ marginBottom: ".5rem" }}
+        animate={{
+          marginBottom: fileMeta.status === "completed" ? 0 : ".5rem",
+        }}
+        transition={{
+          delay: 0.1,
+        }}
+        className={"flex justify-between items-center gap-2"}
+      >
+        <div className={"flex items-center gap-2"}>
+          <span className={"text-blue-700"}>
+            {getFileIcon(
+              "." + fileMeta.file.name.split(".").pop()?.toLowerCase(),
+            )}
+          </span>
+          <div>
+            <p className={"text-sm font-semibold line-clamp-2"}>
+              {fileMeta.file.name}
+            </p>
+            <div className={"text-slate-500 text-xs"}>
+              <span>{getFileSize(fileMeta.file)}</span>
+              {fileMeta.status === "uploading" && (
+                <span>• Przetwarzanie...</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            remove(fileMeta.id);
+          }}
+        >
+          <X className={"text-slate-500"} size={"1.5rem"} />
+        </button>
+      </motion.div>
+
+      <motion.div
+        layout
+        initial={{ opacity: 1, height: "auto" }}
+        animate={{
+          opacity: fileMeta.status === "completed" ? 0 : 1,
+          height: fileMeta.status === "completed" ? 0 : "auto",
+        }}
+        transition={{
+          height: { delay: 0.1 },
+          duration: 0.3,
+        }}
+        className={"w-full flex gap-2 items-center"}
+      >
+        <div className={"relative h-2 rounded-md bg-slate-50 w-full "}>
+          <motion.div
+            className={"absolute left-0 top-0 h-full bg-blue-700 rounded-md"}
+            initial={{ width: 0 }}
+            animate={{ width: `${fileMeta.progress}%` }}
+            transition={{ ease: "linear" }}
+          />
+        </div>
+        <span className={"text-sm text-slate-500 w-9 text-left"}>
+          {fileMeta.progress}%
+        </span>
+      </motion.div>
+    </motion.div>
   );
 };
 
