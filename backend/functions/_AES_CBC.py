@@ -1,6 +1,6 @@
-import _mainAES
-import _mainAES_192
-import _mainAES_256
+from . import _mainAES
+from . import _mainAES_192
+from . import _mainAES_256
 import os
 
 def bytes_to_int(b):

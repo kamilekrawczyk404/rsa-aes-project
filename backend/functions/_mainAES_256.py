@@ -1,5 +1,5 @@
-import _key_expansion_256
-import _galuaMath
+from . import _key_expansion_256
+from . import _galuaMath
 
 def main(inputText, key):
     expandedKey = _key_expansion_256.getExpandedKey(key)

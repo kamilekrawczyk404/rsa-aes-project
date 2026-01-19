@@ -1,20 +1,39 @@
 import time
 import psutil
 import os
+import sys
+
+try:
+    from functions._endpoint import what_to_run
+except ImportError:
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    from functions._endpoint import what_to_run
 
 
 def encryption_worker(algo, file_id, file_path, config, queue, stop_event):
     process = psutil.Process(os.getpid())
-    process.cpu_percent(None)
+    try:
+        process.cpu_percent(None)
+    except:
+        pass
+
     file_size = os.path.getsize(file_path)
     processed_bytes = 0
     start_time = time.time()
     last_metric_time = start_time
 
+    key_size = config.get("key_size", 128)
+    mode_raw = config.get("mode", "ECB")
+
     if algo == "AES":
+        mode_str = f"AES_{mode_raw}"
         chunk_size = 64 * 1024
     else:
-        chunk_size = (config.get("key_size", 2048) // 8) - 42
+        mode_str = "RSA_encrypt"
+
+        chunk_size = (key_size // 8) - 64
+        if chunk_size <= 0: chunk_size = 32
+
 
     output_filename = f"{os.path.basename(file_path)}_{algo.lower()}.enc"
     output_path = os.path.join(os.path.dirname(file_path), output_filename)
@@ -32,7 +51,7 @@ def encryption_worker(algo, file_id, file_path, config, queue, stop_event):
                         "type": "process_finished",
                         "algorithm": algo,
                         "status": "timeout",
-                        "message": "Limit 60s przekroczony"
+                        "message": "Limit 60s przekroczony (RSA)"
                     })
                     return
 
@@ -40,10 +59,26 @@ def encryption_worker(algo, file_id, file_path, config, queue, stop_event):
                 if not chunk:
                     break
 
-                if algo == "RSA":
-                    time.sleep(0.01) #zamiast tego pozniej normalna funkcja
 
-                f_out.write(chunk)
+                try:
+                    if algo == "AES" and mode_raw in ["ECB", "CBC"]:
+                        pad_len = 16 - (len(chunk) % 16)
+                        if pad_len != 16:
+                            chunk += b'\0' * pad_len
+
+
+                    result_tuple = what_to_run(chunk, key_size, mode_str)
+
+                    if isinstance(result_tuple, tuple):
+                        encrypted_data = result_tuple[0]
+                    else:
+                        encrypted_data = result_tuple
+
+                    f_out.write(encrypted_data)
+
+                except Exception as crypt_err:
+                    raise Exception(f"Błąd funkcji {mode_str}: {str(crypt_err)}")
+
                 processed_bytes += len(chunk)
 
                 current_time = time.time()
@@ -63,6 +98,7 @@ def encryption_worker(algo, file_id, file_path, config, queue, stop_event):
                             "processed_bytes": processed_bytes
                         }
                     })
+                    last_metric_time = current_time
 
         queue.put({
             "file_id": file_id,
@@ -70,5 +106,6 @@ def encryption_worker(algo, file_id, file_path, config, queue, stop_event):
             "algorithm": algo,
             "download_url": f"/api/download/{output_filename}"
         })
+
     except Exception as e:
         queue.put({"type": "error", "algorithm": algo, "message": str(e)})

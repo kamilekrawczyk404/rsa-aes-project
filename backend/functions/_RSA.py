@@ -59,7 +59,7 @@ def generate_keypair(keysize):
                 break
             except ValueError:
                 continue
-    print(f"Gotowe w {time.time() - start:.2f}s.")
+    #print(f"Gotowe w {time.time() - start:.2f}s.")
     return ((e, n), (d, n))
 
 def xor_bytes(a, b):
@@ -178,7 +178,8 @@ def decrypt(ciphertext_bytes, private_key):
     return decrypted_stream
 
 def main_input(inputText, keysize):
-    inputText = inputText.encode('utf-8')
+    if isinstance(inputText, str):
+        inputText = inputText.encode('utf-8')
     KEY_SIZE = keysize
     pub, priv = generate_keypair(KEY_SIZE)
 

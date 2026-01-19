@@ -1,10 +1,14 @@
-import _mainAES
-import _mainAES_192
-import _mainAES_256
+from . import _mainAES
+from . import _mainAES_192
+from . import _mainAES_256
 import os
 
 def AES_ECB_encrypt(plaintext, key_length): # plaintext to string, key to 128 bitowy ciąg (defacto int)
-    input = plaintext.encode('utf-8') # zamiana na bajty
+    if isinstance(plaintext, str):
+        input = plaintext.encode('utf-8')
+    else: input = plaintext
+    # zamiana na bajty
+
     key_bytes_len = key_length // 8
 
     key = os.urandom(key_bytes_len)
