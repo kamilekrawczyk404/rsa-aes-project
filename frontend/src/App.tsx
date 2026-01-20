@@ -61,8 +61,8 @@ function App() {
           <SimulationDataProvider>
             <PopupProvider>
               <ModalProvider>
-                <DevModalTrigger />
-                <DevToolbar />
+                {/*<DevModalTrigger />*/}
+                {/*<DevToolbar />*/}
                 <Routes>
                   <Route path={"/"} element={<DashboardLayout />}>
                     {Object.entries(menuItems).map(([key, item]) => (

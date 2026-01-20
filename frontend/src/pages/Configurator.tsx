@@ -16,13 +16,13 @@ import { useCrypto } from "../context/CryptoContext.tsx";
 import Button from "../components/button/Button.tsx";
 import Banner from "../components/banners/Banner.tsx";
 
-interface LocalConfig {
+export interface LocalConfig {
   aes: {
-    keySize: number;
+    key_size: number;
     mode: AesMode;
   };
   rsa: {
-    keySize: number;
+    key_size: number;
   };
   files: FileWithMeta[];
 }
@@ -35,8 +35,8 @@ const Configurator = () => {
   const [canStart, setCanStart] = useState<boolean>(false);
 
   const [config, setConfig] = useState<LocalConfig>({
-    aes: { keySize: 256, mode: "CFB" },
-    rsa: { keySize: 2048 },
+    aes: { key_size: 128, mode: "CBC" },
+    rsa: { key_size: 1024 },
     files: [],
   });
 
@@ -48,7 +48,7 @@ const Configurator = () => {
       ...prev,
       [algorithm.toLowerCase()]: {
         ...prev[algorithm.toLowerCase() as "rsa" | "aes"],
-        keySize: newKeySize,
+        key_size: newKeySize,
       },
     }));
   };
@@ -117,7 +117,7 @@ const Configurator = () => {
                   <AlgorithmCard
                     key={key}
                     algorithm={key.toUpperCase() as Algorithm}
-                    keySizes={[params.keySize]}
+                    keySizes={[params.key_size]}
                     onKeySizeChange={(newSize) =>
                       handleAlgorithmKeySizeChange(
                         key.toUpperCase() as Algorithm,

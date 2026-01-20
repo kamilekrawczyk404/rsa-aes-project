@@ -78,8 +78,6 @@ const Footer = ({
 
   const finalOptions = { ...defaultOptions, ...options };
 
-  console.log("Footer options:", options.showProceedButton);
-
   return (
     <div
       className={`p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-4 ${className}`}

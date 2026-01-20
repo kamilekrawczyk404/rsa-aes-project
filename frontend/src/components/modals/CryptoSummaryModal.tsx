@@ -18,16 +18,17 @@ import {
 } from "lucide-react";
 import { formatBytes } from "../../utils/formatters.ts";
 import ComponentContainer from "../../layouts/ComponentContainer.tsx";
+import type { BatchSummary, FileRaceState } from "../../types/crypto.ts";
 
 const TABLE_ROWS = [
   { id: "status", label: "Status", icon: null },
-  { id: "time", label: "Czas całkowity (s)", icon: <Timer size={"1rem"} /> },
   {
     id: "throughput",
     label: "Średnia przepustowość",
     icon: <Gauge size={"1rem"} />,
   },
   { id: "cpu", label: "Średnie zużycie CPU", icon: <Cpu size={"1rem"} /> },
+  { id: "time", label: "Czas całkowity (s)", icon: <Timer size={"1rem"} /> },
 ];
 
 const getStatusIcon = (status: string) => {
@@ -52,8 +53,8 @@ const getStatusClass = (status: string) => {
 };
 
 interface CryptoSummaryModalProps {
-  mockSummary?: any; // Użyj właściwego typu BatchSummary
-  mockQueue?: any[]; // Użyj właściwego typu FileRaceState[]
+  mockSummary?: any;
+  mockQueue?: any[];
 }
 
 const CryptoSummaryModal = ({
@@ -63,11 +64,14 @@ const CryptoSummaryModal = ({
   const { simulationData } = useSimulationData();
   const { closeModal } = useModal();
   const navigate = useNavigate();
+  const {
+    batchSummary: ctxSummary,
+    fileQueue: ctxQueue,
+    resetRace,
+  } = useCrypto();
 
-  const { batchSummary: ctxSummary, fileQueue: ctxQueue } = useCrypto();
-
-  const batchSummary = mockSummary || ctxSummary;
-  const fileQueue = mockQueue || ctxQueue;
+  const batchSummary: BatchSummary | null = mockSummary || ctxSummary;
+  const fileQueue: FileRaceState[] = mockQueue || ctxQueue;
 
   const winner = useMemo(() => {
     if (!batchSummary) return null;
@@ -105,8 +109,9 @@ const CryptoSummaryModal = ({
 
   const onProceed = useCallback(() => {
     closeModal();
+    resetRace();
     navigate(menuItems.configurator.link);
-  }, [closeModal, navigate]);
+  }, [closeModal, navigate, resetRace]);
 
   if (!batchSummary) return null;
 
@@ -119,10 +124,10 @@ const CryptoSummaryModal = ({
         }
       />
       <ModalLayout.Body>
-        <div className="grid grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-4 gap-4 text-sm">
           <SimulationSingleResult
             title={"Przetworzone Pliki"}
-            value={batchSummary?.total_files || 0}
+            value={batchSummary?.total_files.toString() || "0"}
           />
           <SimulationSingleResult
             title={"Czas Całkowity"}
@@ -131,6 +136,10 @@ const CryptoSummaryModal = ({
           <SimulationSingleResult
             title={"Śr. Przepustowość"}
             value={formatBytes(batchSummary?.average_throughput || 0)}
+          />
+          <SimulationSingleResult
+            title={"Śr. zużycie CPU"}
+            value={`${batchSummary?.average_cpu_usage?.toFixed(2) || "0.00"} %`}
           />
         </div>
 
@@ -191,10 +200,10 @@ const CryptoSummaryModal = ({
         >
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-blue-50 text-slate-700 text-xs">
+              <thead className="bg-blue-50 text-xs">
                 <tr
                   className={
-                    "[&>th]:px-4 [&>th]:py-3 [&>th]:border-b [&>th]:border-slate-200 [&>th]:text-slate-700"
+                    "[&>th]:px-4 [&>th]:py-3 [&>th]:border-b [&>th]:border-slate-200"
                   }
                 >
                   <th className="w-1/4 min-w-[150px] border-r">Plik</th>
@@ -228,19 +237,19 @@ const SimulationSingleResult = ({
     <span className="block text-slate-500 text-xs uppercase font-semibold">
       {title}
     </span>
-    <span className="text-lg font-bold text-slate-900">{value}</span>
+    <span className="text-lg font-bold">{value}</span>
   </div>
 );
 
-const FileRow = ({ file }: { file: any }) => {
+const FileRow = ({ file }: { file: FileRaceState }) => {
   return (
     <>
       <tr>
-        <td className="bg-blue-50 px-4 py-2 border-r border-slate-200 font-medium text-slate-700 flex flex-col justify-between">
+        <td className="bg-blue-50 px-4 py-2 border-r border-slate-200 font-medium flex flex-col justify-between max-w-72">
           <span className="truncate" title={file.fileName}>
             {file.fileName}
           </span>
-          <span className="text-xs text-slate-400 font-normal">
+          <span className="text-xs text-slate-500 font-normal">
             {formatBytes(file.fileSize)}
           </span>
         </td>
@@ -249,7 +258,7 @@ const FileRow = ({ file }: { file: any }) => {
       {TABLE_ROWS.map((row) => (
         <tr
           key={row.id}
-          className="hover:bg-slate-50 transition-colors [&>td]:h-[2.5rem] text-slate-700"
+          className="hover:bg-slate-50 s transition-colors [&>td]:h-[2.5rem]"
         >
           <td className="px-4 py-2 border-r border-slate-200 flex items-center gap-2 text-xs">
             {row.icon} {row.label}
@@ -260,7 +269,7 @@ const FileRow = ({ file }: { file: any }) => {
           </td>
 
           <td className="px-4 py-2 text-xs">
-            {renderMetric(row.id, file.rsa, "rsa", file.status)}
+            {renderMetric(row.id, file.rsa, "rsa", file.rsa.status)}
           </td>
         </tr>
       ))}
@@ -280,6 +289,8 @@ const renderMetric = (
     // Badge with file status
     case "status": {
       let effectiveStatus = "error";
+
+      // console.log("DANE", alg, globalStatus, data);
 
       if (alg === "rsa" && globalStatus === "skipped") {
         effectiveStatus = "skipped";
@@ -301,9 +312,7 @@ const renderMetric = (
     case "time":
       return data.time ? `${data.time.toFixed(2)}s` : "-";
     case "throughput":
-      return data.throughput
-        ? `${data.throughput.toFixed(2)} MB/s`
-        : "0.00 MB/s";
+      return data.throughput ? `${formatBytes(data.throughput)}` : "0.00 MB/s";
     case "cpu":
       return data.cpu ? `${data.cpu.toFixed(1)}%` : "0%";
     default:

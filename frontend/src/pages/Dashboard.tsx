@@ -27,7 +27,6 @@ import CryptoSummaryModal from "../components/modals/CryptoSummaryModal.tsx";
 
 const Dashboard = () => {
   const {
-    skipToNextFile,
     isFileProcessed,
     isConnected,
     isRunning,
@@ -38,6 +37,8 @@ const Dashboard = () => {
     currentFileIndex,
     batchSummary,
     startProcessing,
+    skipToNextFile,
+    resetRace,
     disconnect,
   } = useCrypto();
 
@@ -51,6 +52,14 @@ const Dashboard = () => {
 
   const [hasTriggered, setHasTriggered] = useState(false);
   const [summaryShown, setSummaryShown] = useState(false);
+
+  // Close skipping rsa popup if file changed
+  useEffect(() => {
+    if (skipProcessPopupId.current !== "") {
+      closePopup(skipProcessPopupId.current);
+      skipProcessPopupId.current = "";
+    }
+  }, [currentFileIndex]);
 
   useEffect(() => {
     if (isSessionInitialized) {
@@ -98,9 +107,12 @@ const Dashboard = () => {
     const isQueueCompleted =
       fileQueue.length > 0 &&
       (!isRunning || fileQueue.length - 1 === currentFileIndex);
-    const areAllFilesCompleted = fileQueue.every(
-      (f) => f.status === "completed" || f.status === "skipped",
-    );
+
+    const areAllFilesCompleted =
+      fileQueue.length &&
+      fileQueue.every(
+        (f) => f.status === "completed" || f.status === "skipped",
+      );
 
     // Check if the process has ended (additionally ensure that every file has completed status in a scenario when server has notified batch_completed)
     if (isQueueCompleted && areAllFilesCompleted && !summaryShown) {
@@ -110,7 +122,10 @@ const Dashboard = () => {
 
       openModal(<CryptoSummaryModal />, {
         closeOnBackdropClick: true,
-        onClose: disconnect,
+        onClose: () => {
+          disconnect();
+          resetRace();
+        },
       });
 
       setSummaryShown(true);
@@ -153,12 +168,9 @@ const Dashboard = () => {
     }
 
     if (
-      isFileProcessed ||
-      (skipProcessPopupId.current !== "" &&
-        ((currentFile &&
-          currentFile.rsa.finished &&
-          currentFile.aes.finished) ||
-          !isRunning))
+      skipProcessPopupId.current !== "" &&
+      ((currentFile && currentFile.rsa.finished && currentFile.aes.finished) ||
+        !isRunning)
     ) {
       closePopup(skipProcessPopupId.current);
     }
@@ -245,15 +257,17 @@ const ProcessedFile = ({
   isCurrent: boolean;
 }) => {
   const {
-    skipToNextFile,
     currentFile,
     currentFileIndex,
     fileQueue,
     isRunning,
+    skipToNextFile,
     setCurrentlyDisplayedFile,
   } = useCrypto();
 
   const { closePopup, popups } = usePopups();
+
+  console.log("file:", file);
 
   const canShowResults =
     !isRunning && (file.status === "completed" || file.status === "skipped");
@@ -268,10 +282,10 @@ const ProcessedFile = ({
   const isSkipped = file.status === "skipped";
 
   const nextFile = useCallback(() => {
-    skipToNextFile();
-
     // Remove the last popup (also skipping to the next file) if user clicks on this button
     closePopup(popups[popups.length - 1].id);
+
+    skipToNextFile();
   }, [skipToNextFile, closePopup, popups]);
 
   const showFileResults = useCallback(() => {
@@ -314,7 +328,7 @@ const ProcessedFile = ({
         )}
       </div>
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 mr-6">
         <p
           className={`text-sm truncate ${
             isSkipped

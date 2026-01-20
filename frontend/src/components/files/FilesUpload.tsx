@@ -5,6 +5,8 @@ import type { FileWithMeta } from "../../types/crypto.ts";
 import { useSystemConfig } from "../../hooks/useSystemConfig.ts";
 import Container from "../../layouts/Container.tsx";
 import Banner from "../banners/Banner.tsx";
+import { usePopups } from "../../context/PopUpContext.tsx";
+import { formatBytes } from "../../utils/formatters.ts";
 
 const getFileIcon = (fileExtension: string) => {
   switch (fileExtension) {
@@ -37,6 +39,7 @@ type FilesUploadProps = {
 
 const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
   const { data: config, isLoading, isError } = useSystemConfig();
+  const { addNewPopup } = usePopups();
 
   const maxFileSize = config?.max_file_size_bytes || 0;
   const allowedExtensions = config?.allowed_extensions || [];
@@ -73,7 +76,7 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
     let progress = 0;
 
     const interval = setInterval(() => {
-      progress += Math.random() * 15;
+      progress += Math.random() * 15 + 10;
 
       if (progress >= 100) {
         progress = 100;
@@ -100,14 +103,32 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
       const isTypeValid = allowedExtensions.includes(extension);
       const isSizeValid = file.size <= maxFileSize;
 
-      if (!isSizeValid)
+      if (!isSizeValid) {
+        addNewPopup({
+          type: "error",
+          title: "Nieprawidłowy rozmiar pliku",
+          description: `Plik ${
+            file.name
+          } przekracza maksymalny rozmiar pliku - ${formatBytes(maxFileSize)}.`,
+          fadeOut: true,
+        });
         console.warn(
           `File ${file.name} exceeds the maximum file size - ${maxFileSize} bytes`,
         );
-      if (!isTypeValid)
+        return false;
+      }
+      if (!isTypeValid) {
+        addNewPopup({
+          type: "error",
+          title: "Nieobsługiwany typ pliku",
+          description: `Plik ${file.name} ma nieobsługiwane rozszerzenie pliku - ${extension}.`,
+          fadeOut: true,
+        });
         console.warn(
           `File ${file.name} has unsupported file extension - ${extension}`,
         );
+        return false;
+      }
 
       return isTypeValid && isSizeValid;
     });
