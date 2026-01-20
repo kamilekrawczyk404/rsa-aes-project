@@ -110,7 +110,11 @@ async def websocket_endpoint(websocket: WebSocket):
             while True:
                 while not metric_queue.empty():
                     msg = metric_queue.get_nowait()
-                    await websocket.send_json(msg)
+
+                    if websocket.client_state.value == 1:
+                        await websocket.send_json(msg)
+                    else:
+                        return
                 await asyncio.sleep(0.1)
         except Exception:
             pass
@@ -119,7 +123,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
     try:
         while True:
-            message = await websocket.receive()
+            try:
+                message = await websocket.receive()
+            except RuntimeError:
+                break
 
             if "bytes" in message:
                 if stream_mode:
@@ -136,8 +143,15 @@ async def websocket_endpoint(websocket: WebSocket):
                         result = what_to_run(raw_frame, key_size, mode_str)
                         encrypted_frame = result[0] if isinstance(result, tuple) else result
 
-                        await websocket.send_bytes(encrypted_frame)
+                        if websocket.client_state.value == 1:
+                            await websocket.send_bytes(encrypted_frame)
+                        else:
+                            print("WebSocket nie jest połączony, pomijanie wysyłki klatki")
+                            break
+
                     except Exception as e:
+                        if "closed" in str(e).lower() or "send" in str(e).lower():
+                            break
                         print(f"Błąd klatki: {e}")
                 continue
 
