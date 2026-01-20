@@ -11,7 +11,6 @@ async def process_queue_task(session_id, file_ids, config, metric_queue, stop_ev
         shared_stats = manager.list()
 
         for index, f_id in enumerate(file_ids):
-            # Czekamy aż front wyśle NEXT_FILE
             await next_file_event.wait()
             next_file_event.clear()
 

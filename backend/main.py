@@ -5,11 +5,18 @@ import shutil
 import asyncio
 import sys
 from typing import List, Dict
+
+import cv2
+import numpy as np
 from fastapi import FastAPI, WebSocket, UploadFile, File, WebSocketDisconnect, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import BackgroundTasks
 from multiprocessing import Queue, Event, Process
+
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -33,7 +40,38 @@ sessions_db: Dict[str, Dict[str, str]] = {}
 
 queue_manager_task = None
 
+LIBRARY_KEYS_CACHE = {}
 
+
+def run_library_aes(data: bytes, key_size: int, mode_str: str) -> bytes:
+    if key_size not in LIBRARY_KEYS_CACHE:
+        LIBRARY_KEYS_CACHE[key_size] = os.urandom(key_size // 8)
+
+    key = LIBRARY_KEYS_CACHE[key_size]
+
+    if "GCM" in mode_str:
+        aesgcm = AESGCM(key)
+        nonce = b'\0' * 12
+        return aesgcm.encrypt(nonce, data, None)
+
+    elif "CBC" in mode_str:
+        iv = b'\0' * 16
+        mode = modes.CBC(iv)
+        cipher = Cipher(algorithms.AES(key), mode, backend=default_backend())
+        encryptor = cipher.encryptor()
+        return encryptor.update(data) + encryptor.finalize()
+
+    else:
+        mode = modes.ECB()
+        cipher = Cipher(algorithms.AES(key), mode, backend=default_backend())
+        encryptor = cipher.encryptor()
+        return encryptor.update(data) + encryptor.finalize()
+
+def optimize_frame(frame_bytes: bytes) -> bytes:
+    data = np.frombuffer(frame_bytes, dtype=np.uint8).copy()
+    N = 32
+    tab = (data // N) * N
+    return tab.tobytes()
 
 @app.get("/api/config")
 async def get_config():
@@ -98,7 +136,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
     stream_mode = False
     current_session_id = None
-    webcam_config = {"key_size": 128, "mode": "ECB"}
+    webcam_config = {"key_size": 128, "mode": "ECB","implementation": "our"}
 
     global queue_manager_task
     metric_queue = Queue()
@@ -134,19 +172,24 @@ async def websocket_endpoint(websocket: WebSocket):
                         nonlocal is_processing
                         is_processing = True
                         try:
-                            ks = config.get("key_size",128)
-                            ms = f"AES_{config.get('mode','ECB')}"
-                            pad_len = 16 - (len(frame_data) % 16)
-                            if pad_len != 16:
-                                frame_data += b'\0' * pad_len #do usuniecia jezeli obraz bedzie wielokrotnoscia 16
+                            loop = asyncio.get_running_loop()
 
-                            current_loop = asyncio.get_running_loop()
+                            mode_raw = config.get('mode', 'ECB')
+                            ms = f"AES_{mode_raw}"
+                            ks = config.get("key_size", 128)
+                            impl = config.get("implementation", "our")
 
-                            result = await current_loop.run_in_executor(
-                                None, what_to_run, frame_data, ks, ms
-                            )
+                            if mode_raw == "ECB" and impl == "our":
+                                ready_data = await loop.run_in_executor(None, optimize_frame, frame_data)
+                            else:
+                                ready_data = frame_data
 
-                            enc_frame = result[0] if isinstance(result, tuple) else result
+                            if impl == "library":
+                                enc_frame = await loop.run_in_executor(None, run_library_aes, ready_data, ks, ms)
+                            else:
+                                result = await loop.run_in_executor(None, what_to_run, ready_data, ks, ms)
+                                enc_frame = result[0] if isinstance(result, tuple) else result
+
                             await websocket.send_bytes(enc_frame)
                         except Exception as e:
                             print(f"Błąd klatki: {e}")
@@ -170,6 +213,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 elif command == "STOP_WEBCAM":
                     stream_mode = False
+                    is_processing = False
                     await websocket.send_json({"type": "info", "message": "Stream zatrzymany"})
 
                 elif command == "START_RACE":

@@ -14,11 +14,7 @@ except ImportError:
 
 def encryption_worker(algo, file_id, file_path, config, queue, stop_event, shared_stats=None):
     process = psutil.Process(os.getpid())
-    try:
-        process.cpu_percent(None)
-    except:
-        pass
-
+    process.cpu_percent(None)
     file_size = os.path.getsize(file_path)
     processed_bytes = 0
     start_time = time.time()

@@ -1,10 +1,11 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Literal
 
 class AlgoConfig(BaseModel):
     key_size: int
     mode: Optional[str] = None
     padding: Optional[str] = None
+    implementation: Optional[Literal["our", "library"]] = "our"
 
 class RaceConfig(BaseModel):
     aes: AlgoConfig
