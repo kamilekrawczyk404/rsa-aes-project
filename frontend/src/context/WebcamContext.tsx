@@ -6,23 +6,39 @@ import {
   useEffect,
   useCallback,
   useRef,
+  type Dispatch,
+  type SetStateAction,
 } from "react";
 import { useWebSocketConnection } from "./WebSocketProvider.tsx";
+import type { AesKeySize, AesMode, Algorithm } from "../types/crypto.ts";
 
-interface WebcamConfig {
-  algo: string;
-  mode: string;
-  keySize: number;
+export interface WebcamConfig {
+  algo: Algorithm;
+  mode: AesMode;
+  keySize: AesKeySize;
+  video: MediaTrackConstraints;
 }
 
 interface WebcamContextType {
   isStreaming: boolean;
   config: WebcamConfig;
-  setConfig: (c: WebcamConfig) => void;
+  setConfig: Dispatch<SetStateAction<WebcamConfig>>;
   toggleStream: () => void;
-  lastFrame: ImageBitmap | null;
+  lastFrame: Uint8ClampedArray | null;
   latency: number;
+  notifyFrameSent: () => void;
 }
+
+export const DEFAULT_CONFIG_OPTIONS: WebcamConfig = {
+  algo: "AES",
+  mode: "ECB",
+  keySize: 128,
+  video: {
+    width: { ideal: 480 },
+    height: { ideal: 360 },
+    frameRate: { ideal: 60 },
+  },
+};
 
 const WebcamContext = createContext<WebcamContextType | null>(null);
 
@@ -30,13 +46,14 @@ export const WebcamProvider = ({ children }: { children: ReactNode }) => {
   const { isConnected, sendJson, lastMessage } = useWebSocketConnection();
 
   const [isStreaming, setIsStreaming] = useState(false);
-  const [config, setConfig] = useState<WebcamConfig>({
-    algo: "AES",
-    mode: "ECB",
-    keySize: 128,
-  });
 
-  const [lastFrame, setLastFrame] = useState<ImageBitmap | null>(null);
+  // Webcam configuration state
+  const [config, setConfig] = useState<WebcamConfig>(DEFAULT_CONFIG_OPTIONS);
+
+  // Last frame displayed on the processing side
+  const [lastFrame, setLastFrame] = useState<Uint8ClampedArray | null>(null);
+
+  // Latency measurement state
   const [latency, setLatency] = useState(0);
 
   const lastPingRef = useRef<number>(0);
@@ -46,15 +63,22 @@ export const WebcamProvider = ({ children }: { children: ReactNode }) => {
 
     const now = performance.now();
 
+    // Calculate latency
     if (lastPingRef.current > 0) {
       setLatency(Math.round(now - lastPingRef.current));
     }
 
+    // Process incoming frame
     if (lastMessage.data instanceof Blob) {
-      createImageBitmap(lastMessage.data).then(setLastFrame);
+      lastMessage.data.arrayBuffer().then((buffer) => {
+        const rawBytes = new Uint8ClampedArray(buffer);
+
+        setLastFrame(rawBytes);
+      });
     }
   }, [lastMessage, isStreaming]);
 
+  // Function to start/stop streaming
   const toggleStream = useCallback(() => {
     if (!isConnected) return;
 
@@ -68,10 +92,22 @@ export const WebcamProvider = ({ children }: { children: ReactNode }) => {
         session_id: sessionId,
         config: { aes: { key_size: config.keySize, mode: config.mode } },
       });
+
+      console.log("json", {
+        command: "START_WEBCAM",
+        session_id: sessionId,
+        config: { aes: { key_size: config.keySize, mode: config.mode } },
+      });
       setIsStreaming(true);
     }
   }, [isConnected, isStreaming, sendJson, config]);
 
+  // Notify that a frame has been sent to the server
+  const notifyFrameSent = useCallback(() => {
+    lastPingRef.current = performance.now();
+  }, []);
+
+  // Stop streaming if disconnected
   useEffect(() => {
     if (!isConnected && isStreaming) {
       setIsStreaming(false);
@@ -87,6 +123,7 @@ export const WebcamProvider = ({ children }: { children: ReactNode }) => {
         toggleStream,
         lastFrame,
         latency,
+        notifyFrameSent,
       }}
     >
       {children}

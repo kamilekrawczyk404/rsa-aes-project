@@ -35,8 +35,7 @@ const Dashboard = () => {
     fileQueue,
     currentFile,
     currentFileIndex,
-    batchSummary,
-    startProcessing,
+    // batchSummary,
     skipToNextFile,
     resetRace,
     disconnect,
@@ -123,7 +122,7 @@ const Dashboard = () => {
       openModal(<CryptoSummaryModal />, {
         closeOnBackdropClick: true,
         onClose: () => {
-          disconnect();
+          // disconnect();
           resetRace();
         },
       });
@@ -142,15 +141,6 @@ const Dashboard = () => {
     openModal,
     disconnect,
   ]);
-
-  // Decide when to start processing
-  useEffect(() => {
-    if (batchSummary) return;
-
-    if (fileQueue.length > 0 && !isConnected && !isRunning) {
-      startProcessing();
-    }
-  }, [fileQueue, isRunning, isConnected, batchSummary]);
 
   // Message for skipping RSA processing
   useEffect(() => {
@@ -266,8 +256,6 @@ const ProcessedFile = ({
   } = useCrypto();
 
   const { closePopup, popups } = usePopups();
-
-  console.log("file:", file);
 
   const canShowResults =
     !isRunning && (file.status === "completed" || file.status === "skipped");

@@ -22,7 +22,7 @@ const getAlgorithmIcon = (type: Algorithm) => {
 
 export type AlgorithmCardProps = {
   algorithm: Algorithm;
-  keySizes: number[];
+  keySizes: readonly number[];
   onKeySizeChange: (newSize: number) => void;
   modes?: (AesDetails & { mode: AesMode })[];
   onModeChange?: (newMode: AesDetails & { mode: AesMode }) => any;
@@ -30,6 +30,7 @@ export type AlgorithmCardProps = {
     item: AesDetails & { mode: AesMode },
     withAnnotation: boolean,
   ) => ReactNode;
+  disabled?: boolean;
 };
 
 const AlgorithmCard = ({
@@ -39,6 +40,7 @@ const AlgorithmCard = ({
   renderSelectorItem,
   onModeChange,
   modes = [],
+  disabled = false,
 }: AlgorithmCardProps) => {
   const def = ALGORITHM_DEFS[algorithm];
 
@@ -63,9 +65,15 @@ const AlgorithmCard = ({
         <span className={"inline-block text-sm mb-2"}>Siła klucza</span>
 
         <div className="relative w-full flex items-center h-4">
-          <div className="absolute w-full h-0.5 rounded-full overflow-hidden bg-slate-200">
+          <div
+            className={`absolute w-full h-0.5 rounded-full overflow-hidden ${
+              disabled ? "bg-slate-100" : "bg-slate-200"
+            }`}
+          >
             <div
-              className={`h-full transition-all bg-blue-700`}
+              className={`h-full transition-all ${
+                disabled ? "bg-blue-500" : "bg-blue-700"
+              }`}
               style={{ width: `${(currentKeyIndex / maxKeyIndex) * 100}%` }}
             />
           </div>
@@ -81,6 +89,7 @@ const AlgorithmCard = ({
               const newValue = def.keySizes[newIndex];
               onKeySizeChange(newValue);
             }}
+            disabled={disabled}
             className="absolute w-full h-full opacity-0 cursor-pointer"
           />
 
@@ -88,8 +97,14 @@ const AlgorithmCard = ({
             {def.keySizes.map((size, idx) => (
               <div
                 key={size}
-                className={`w-3 aspect-square rounded-full ring-2 ring-white ${
-                  idx <= currentKeyIndex ? "bg-blue-700" : "bg-slate-200"
+                className={`w-3 aspect-square rounded-full ring-2 ring-white transition-colors ${
+                  idx <= currentKeyIndex
+                    ? disabled
+                      ? "bg-blue-500"
+                      : "bg-blue-700"
+                    : disabled
+                      ? "bg-slate-100"
+                      : "bg-slate-200"
                 } ${idx === currentKeyIndex ? "scale-150" : ""}`}
               />
             ))}
@@ -121,6 +136,7 @@ const AlgorithmCard = ({
             items={modes}
             renderItem={renderSelectorItem!}
             onItemChange={onModeChange!}
+            disabled={disabled}
           />
         </div>
       )}

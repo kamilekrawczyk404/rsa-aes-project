@@ -4,17 +4,16 @@ import React from "react";
 import { Cog, House, LayoutDashboard, Video } from "lucide-react";
 import DashboardLayout from "./layouts/DashboardLayout.tsx";
 import Welcome from "./pages/Welcome.tsx";
-import Configurator from "./pages/Configurator.tsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Dashboard from "./pages/Dashboard.tsx";
 import { CryptoProcessProvider } from "./context/CryptoContext.tsx";
-import DevToolbar from "./components/DevToolbar.tsx";
 import { SimulationDataProvider } from "./context/SimulationDataContext.tsx";
 import { PopupProvider } from "./context/PopUpContext.tsx";
 import { ModalProvider } from "./context/ModalContext.tsx";
-import { DevModalTrigger } from "./components/DevModalTrigger.tsx";
 import LiveCameraView from "./pages/LiveCameraView.tsx";
+import Configurator from "./pages/Configurator.tsx";
 import { WebSocketProvider } from "./context/WebSocketProvider.tsx";
+import { WebcamProvider } from "./context/WebcamContext.tsx";
 
 export type View = "welcome" | "configurator" | "dashboard" | "encryptedWebcam";
 
@@ -67,30 +66,32 @@ function App() {
       <QueryClientProvider client={client}>
         <WebSocketProvider>
           <CryptoProcessProvider>
-            <SimulationDataProvider>
-              <PopupProvider>
-                <ModalProvider>
-                  {/*<DevModalTrigger />*/}
-                  {/*<DevToolbar />*/}
-                  <Routes>
-                    <Route path={"/"} element={<DashboardLayout />}>
-                      {Object.entries(menuItems).map(([key, item]) => (
+            <WebcamProvider>
+              <SimulationDataProvider>
+                <PopupProvider>
+                  <ModalProvider>
+                    {/*<DevModalTrigger />*/}
+                    {/*<DevToolbar />*/}
+                    <Routes>
+                      <Route path={"/"} element={<DashboardLayout />}>
+                        {Object.entries(menuItems).map(([key, item]) => (
+                          <Route
+                            key={key}
+                            index={key === "welcome"}
+                            path={item.link.substring(1)}
+                            element={item.element}
+                          />
+                        ))}
                         <Route
-                          key={key}
-                          index={key === "welcome"}
-                          path={item.link.substring(1)}
-                          element={item.element}
+                          path={"*"}
+                          element={<Navigate to={"/"} replace />}
                         />
-                      ))}
-                      <Route
-                        path={"*"}
-                        element={<Navigate to={"/"} replace />}
-                      />
-                    </Route>
-                  </Routes>
-                </ModalProvider>
-              </PopupProvider>
-            </SimulationDataProvider>
+                      </Route>
+                    </Routes>
+                  </ModalProvider>
+                </PopupProvider>
+              </SimulationDataProvider>
+            </WebcamProvider>
           </CryptoProcessProvider>
         </WebSocketProvider>
       </QueryClientProvider>

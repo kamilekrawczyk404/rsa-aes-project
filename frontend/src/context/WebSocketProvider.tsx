@@ -4,10 +4,17 @@ import {
   type ReactNode,
   useMemo,
   useCallback,
+  useRef,
+  useEffect,
 } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 
 const WS_URL = "ws://localhost:8000/ws";
+
+interface UseWebsocketOptions {
+  onConnect?: () => void;
+  onDisconnect?: () => void;
+}
 
 interface WebSocketContextType {
   isConnected: boolean;
@@ -16,6 +23,7 @@ interface WebSocketContextType {
   sendJson: (data: any) => void;
   sendBytes: (bytes: ArrayBuffer) => void;
   connect: () => void;
+  getWebSocket: () => WebSocket | null | undefined;
   disconnect: () => void;
 }
 
@@ -50,6 +58,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
       lastJsonMessage,
       sendJson: sendJsonMessage,
       sendBytes,
+      getWebSocket,
       connect: () => {},
       disconnect: () => getWebSocket()?.close(),
     }),
@@ -70,11 +79,33 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useWebSocketConnection = () => {
+export const useWebSocketConnection = (options?: UseWebsocketOptions) => {
   const context = useContext(WebSocketContext);
   if (!context)
     throw new Error(
       "useWebSocketConnection must be used within WebSocketProvider",
     );
+
+  const onConnectRef = useRef(options?.onConnect);
+  const onDisconnectRef = useRef(options?.onDisconnect);
+
+  useEffect(() => {
+    onConnectRef.current = options?.onConnect;
+    onDisconnectRef.current = options?.onDisconnect;
+  }, []);
+
+  // Handle connection status changes
+  useEffect(() => {
+    if (context.isConnected) {
+      if (onConnectRef.current) {
+        onConnectRef.current();
+      }
+    } else {
+      if (onDisconnectRef.current) {
+        onDisconnectRef.current();
+      }
+    }
+  }, [context.isConnected]);
+
   return context;
 };

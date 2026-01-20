@@ -128,8 +128,8 @@ const Configurator = () => {
                       key === "aes"
                         ? Object.entries(AES_MODE_DETAILS).map(
                             ([mode, values]) => ({
-                              mode: mode as AesMode,
                               ...values,
+                              mode: mode as AesMode,
                             }),
                           )
                         : []
