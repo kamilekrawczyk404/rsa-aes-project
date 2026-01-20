@@ -103,6 +103,8 @@ async def websocket_endpoint(websocket: WebSocket):
     stop_event = Event()
     active_processes: List[Process] = []
 
+    is_processing = False
+
     async def monitor_queue():
         try:
             while True:
@@ -116,27 +118,41 @@ async def websocket_endpoint(websocket: WebSocket):
     queue_task = asyncio.create_task(monitor_queue())
 
     try:
+
         while True:
             message = await websocket.receive()
 
             if "bytes" in message:
                 if stream_mode:
+                    if is_processing:
+                        continue
                     raw_frame = message["bytes"]
-                    try:
-                        key_size = webcam_config.get("key_size", 128)
-                        mode_raw = webcam_config.get("mode", "ECB")
-                        mode_str = f"AES_{mode_raw}"
 
-                        pad_len = 16 - (len(raw_frame) % 16)
-                        if pad_len != 16:
-                            raw_frame += b'\0' * pad_len
+                    async def process_frame(frame_data, config):
+                        nonlocal is_processing
+                        is_processing = True
+                        try:
+                            ks = config.get("key_size",128)
+                            ms = f"AES_{config.get('mode','ECB')}"
+                            pad_len = 16 - (len(frame_data) % 16)
+                            if pad_len != 16:
+                                frame_data += b'\0' * pad_len #do usuniecia jezeli obraz bedzie wielokrotnoscia 16
 
-                        result = what_to_run(raw_frame, key_size, mode_str)
-                        encrypted_frame = result[0] if isinstance(result, tuple) else result
+                            current_loop = asyncio.get_running_loop()
 
-                        await websocket.send_bytes(encrypted_frame)
-                    except Exception as e:
-                        print(f"Błąd klatki: {e}")
+                            result = await current_loop.run_in_executor(
+                                None, what_to_run, frame_data, ks, ms
+                            )
+
+                            enc_frame = result[0] if isinstance(result, tuple) else result
+                            await websocket.send_bytes(enc_frame)
+                        except Exception as e:
+                            print(f"Błąd klatki: {e}")
+                        finally:
+                            is_processing = False
+
+                    asyncio.create_task(process_frame(raw_frame, webcam_config))
+
                 continue
 
             if "text" in message:
@@ -148,6 +164,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     if "config" in raw_data and "aes" in raw_data["config"]:
                         webcam_config = raw_data["config"]["aes"]
                     stream_mode = True
+                    is_processing = False
 
                 elif command == "STOP_WEBCAM":
                     stream_mode = False
