@@ -17,7 +17,7 @@ const ComponentContainer = ({
   className = "",
 }: ComponentContainerProps) => {
   return (
-    <Container className={className}>
+    <Container className={`!p-0 overflow-hidden ${className}`}>
       <section className="flex items-center gap-2 border-b-[1px] border-slate-200 p-4">
         <div className={`p-2 rounded-lg bg-blue-100 text-blue-700`}>{icon}</div>
         <div>

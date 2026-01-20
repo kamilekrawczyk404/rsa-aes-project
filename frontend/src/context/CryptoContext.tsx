@@ -13,6 +13,7 @@ import type {
 import { useEffect, useRef, useState } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import type { LocalConfig } from "../pages/Configurator.tsx";
+import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 
 const WS_URL = "ws://localhost:8000/ws";
 
@@ -27,6 +28,9 @@ export interface CryptoContextValues {
   currentFile: FileRaceState | undefined;
   currentFileIndex: number;
   queueProgress: { current: number; total: number };
+  lastMessage: MessageEvent<any> | null;
+  sendJsonMessage: SendJsonMessage;
+  sendBytes: (bytes: ArrayBuffer) => void;
   initializeSession: (
     sessId: string,
     files: UploadedFile[],
@@ -75,52 +79,59 @@ export const CryptoProcessProvider = ({
 
   const configRef = useRef<LocalConfig | null>(null);
 
-  const { lastJsonMessage, readyState, sendJsonMessage } =
-    useWebSocket<IncomingWebSocketMessage>(socketUrl, {
-      share: false,
-      shouldReconnect: () => false,
-      onOpen: () => {
-        console.log("WebSocket connection opened");
+  const {
+    lastJsonMessage,
+    lastMessage,
+    readyState,
+    sendJsonMessage,
+    sendMessage,
+  } = useWebSocket<IncomingWebSocketMessage>(socketUrl, {
+    share: false,
+    shouldReconnect: () => false,
+    onOpen: () => {
+      console.log("WebSocket connection opened");
 
-        if (fileQueue.length > 0 && currentFileIndex === -1) {
-          console.log("Wysyłam start race");
+      if (fileQueue.length > 0 && currentFileIndex === -1) {
+        console.log("Wysyłam start race");
 
-          const payload: StartRaceCommand = {
-            command: "START_RACE",
-            session_id: sessionId!,
-            file_ids: fileQueue.map((f) => f.id),
-            config: configRef.current!,
-          };
+        const payload: StartRaceCommand = {
+          command: "START_RACE",
+          session_id: sessionId!,
+          file_ids: fileQueue.map((f) => f.id),
+          config: configRef.current!,
+        };
 
-          sendJsonMessage(payload);
+        sendJsonMessage(payload);
 
-          processNextFile();
+        processNextFile();
+      }
+    },
+    onClose: () => {
+      console.log("WebSocket connection closed");
+      setIsRunning(false);
+      setSocketUrl(null);
+    },
+    onError: (event) => console.error("WebSocket error observed:", event),
+  });
 
-          // setCurrentFileIndex(0);
-          // setIsFileProcessed(true);
-          //
-          // setRaceState((prev) => {
-          //   return prev.map((rs, index) => {
-          //     if (index !== 0) return rs;
-          //
-          //     return {
-          //       ...rs,
-          //       status: "processing",
-          //     };
-          //   });
-          // });
+  const isSessionInitialized = sessionId !== null;
+  const isConnected = readyState === ReadyState.OPEN;
 
-          // processNextFile();
-        }
-      },
-      onClose: () => {
-        console.log("WebSocket connection closed");
-        setIsRunning(false);
-        setSocketUrl(null);
-      },
-      onError: (event) => console.error("WebSocket error observed:", event),
-    });
+  // Webcamera
+  const sendBytes = useCallback(
+    (bytes: ArrayBuffer) => {
+      if (isSessionInitialized && isConnected) {
+        sendMessage(bytes);
+      } else {
+        console.warn(
+          "Cannot send bytes, WebSocket not connected or session not initialized.",
+        );
+      }
+    },
+    [isSessionInitialized, isConnected, sendMessage],
+  );
 
+  // Files
   useEffect(() => {
     if (!isRunning) {
       if (currentFile && currentFile.aes.finished && currentFile.rsa.finished) {
@@ -411,8 +422,8 @@ export const CryptoProcessProvider = ({
         batchSummary,
         isFileProcessed,
         fileQueue: raceState,
-        isSessionInitialized: sessionId !== null,
-        isConnected: readyState === ReadyState.OPEN,
+        isSessionInitialized,
+        isConnected,
         isRunning,
         currentFile,
         currentFileIndex,
@@ -420,6 +431,9 @@ export const CryptoProcessProvider = ({
           current: currentFileIndex + 1,
           total: fileQueue.length,
         },
+        lastMessage,
+        sendBytes,
+        sendJsonMessage,
         initializeSession,
         startProcessing,
         skipRsa,

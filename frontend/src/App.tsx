@@ -1,7 +1,7 @@
 import "./App.css";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import React from "react";
-import { Cog, House, LayoutDashboard } from "lucide-react";
+import { Cog, House, LayoutDashboard, Video } from "lucide-react";
 import DashboardLayout from "./layouts/DashboardLayout.tsx";
 import Welcome from "./pages/Welcome.tsx";
 import Configurator from "./pages/Configurator.tsx";
@@ -13,8 +13,10 @@ import { SimulationDataProvider } from "./context/SimulationDataContext.tsx";
 import { PopupProvider } from "./context/PopUpContext.tsx";
 import { ModalProvider } from "./context/ModalContext.tsx";
 import { DevModalTrigger } from "./components/DevModalTrigger.tsx";
+import LiveCameraView from "./pages/LiveCameraView.tsx";
+import { WebSocketProvider } from "./context/WebSocketProvider.tsx";
 
-export type View = "welcome" | "configurator" | "dashboard";
+export type View = "welcome" | "configurator" | "dashboard" | "encryptedWebcam";
 
 type MenuItem = {
   label: string;
@@ -30,17 +32,23 @@ export const menuItems: { [T in View]: MenuItem } = {
     icon: <House />,
     element: <Welcome />,
   },
+  dashboard: {
+    link: "/dashboard",
+    label: "Panel główny",
+    icon: <LayoutDashboard />,
+    element: <Dashboard />,
+  },
   configurator: {
     link: "/configurator",
     label: "Konfigurator",
     icon: <Cog />,
     element: <Configurator />,
   },
-  dashboard: {
-    link: "/dashboard",
-    label: "Panel główny",
-    icon: <LayoutDashboard />,
-    element: <Dashboard />,
+  encryptedWebcam: {
+    link: "/encrypted-webcam",
+    label: "Obraz na żywo",
+    icon: <Video />,
+    element: <LiveCameraView />,
   },
 };
 
@@ -57,29 +65,34 @@ function App() {
   return (
     <BrowserRouter>
       <QueryClientProvider client={client}>
-        <CryptoProcessProvider>
-          <SimulationDataProvider>
-            <PopupProvider>
-              <ModalProvider>
-                {/*<DevModalTrigger />*/}
-                {/*<DevToolbar />*/}
-                <Routes>
-                  <Route path={"/"} element={<DashboardLayout />}>
-                    {Object.entries(menuItems).map(([key, item]) => (
+        <WebSocketProvider>
+          <CryptoProcessProvider>
+            <SimulationDataProvider>
+              <PopupProvider>
+                <ModalProvider>
+                  {/*<DevModalTrigger />*/}
+                  {/*<DevToolbar />*/}
+                  <Routes>
+                    <Route path={"/"} element={<DashboardLayout />}>
+                      {Object.entries(menuItems).map(([key, item]) => (
+                        <Route
+                          key={key}
+                          index={key === "welcome"}
+                          path={item.link.substring(1)}
+                          element={item.element}
+                        />
+                      ))}
                       <Route
-                        key={key}
-                        index={key === "welcome"}
-                        path={item.link.substring(1)}
-                        element={item.element}
+                        path={"*"}
+                        element={<Navigate to={"/"} replace />}
                       />
-                    ))}
-                    <Route path={"*"} element={<Navigate to={"/"} replace />} />
-                  </Route>
-                </Routes>
-              </ModalProvider>
-            </PopupProvider>
-          </SimulationDataProvider>
-        </CryptoProcessProvider>
+                    </Route>
+                  </Routes>
+                </ModalProvider>
+              </PopupProvider>
+            </SimulationDataProvider>
+          </CryptoProcessProvider>
+        </WebSocketProvider>
       </QueryClientProvider>
     </BrowserRouter>
   );
