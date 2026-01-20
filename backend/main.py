@@ -94,6 +94,8 @@ async def download_file(filename: str, background_tasks: BackgroundTasks):
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
 
+    next_file_event = asyncio.Event()
+
     stream_mode = False
     current_session_id = None
     webcam_config = {"key_size": 128, "mode": "ECB"}
@@ -180,6 +182,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         data = StartRaceCommand(**raw_data)
                         stop_event.clear()
 
+                        next_file_event.set()
+
                         queue_manager_task = asyncio.create_task(process_queue_task(
                             data.session_id,
                             data.file_ids,
@@ -188,7 +192,8 @@ async def websocket_endpoint(websocket: WebSocket):
                             stop_event,
                             active_processes,
                             websocket,
-                            sessions_db
+                            sessions_db,
+                            next_file_event
                         ))
                     except Exception as e:
                         await websocket.send_json({"type": "error", "message": f"Błąd startu: {str(e)}"})
@@ -198,6 +203,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         if p.is_alive():
                             p.terminate()
                     active_processes.clear()
+
+                    next_file_event.set()
 
                 elif command == "STOP_ALL":
                     stop_event.set()

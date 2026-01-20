@@ -1,6 +1,8 @@
 import { useCrypto } from "../../context/CryptoContext.tsx";
 import {
   Cpu,
+  Download,
+  FileDown,
   Gauge,
   KeyRound,
   Settings,
@@ -14,6 +16,7 @@ import { type AverageData } from "../../hooks/prepareSimulationData.ts";
 import { motion } from "framer-motion";
 import { defaultTransition } from "../../framer/transitions.ts";
 import ComponentContainer from "../../layouts/ComponentContainer.tsx";
+import { formatBytes } from "../../utils/formatters.ts";
 
 const algorithms = ["AES", "RSA"] as Algorithm[];
 
@@ -23,22 +26,27 @@ const tableRows = [
     type: "progress",
   },
   {
+    title: "Zaszyfrowany plik",
+    type: "file",
+    icon: <FileDown size={"1rem"} />,
+  },
+  {
     title: "Wielkość klucza",
     type: "keySize",
     icon: <KeyRound size={"1rem"} />,
   },
   {
-    title: "Inne parametry",
+    title: "Tryb",
     type: "config",
     icon: <Settings size={"1rem"} />,
   },
   {
-    title: "Średnia przepustowość (MB/s)",
+    title: "Średnia przepustowość",
     type: "averageThroughput",
     icon: <Gauge size={"1rem"} />,
   },
   {
-    title: "Średnie zużycie CPU (%)",
+    title: "Średnie zużycie CPU",
     type: "averageCpuUsage",
     icon: <Cpu size={"1rem"} />,
   },
@@ -56,27 +64,27 @@ const SummaryTable = () => {
   return (
     <ComponentContainer
       className={"!p-0 overflow-x-auto"}
-      title={"Podsumowanie wyników przetwarzania plików"}
+      title={"Podsumowanie wyników przetwarzania pliku"}
       description={
-        "Przegląd wydajności algorytmów dla aktualnie przetwarzanego pliku"
+        "Przegląd wydajności algorytmów kryptograficznych zastosowanych do bieżącego pliku."
       }
       icon={<TextSearch size={"1rem"} />}
     >
       <section className={"border-b-[1px] border-slate-200 !w-full"}>
         {/*table header*/}
-        <div className={"grid grid-cols-[12rem_1fr_1fr] bg-blue-50"}>
-          <div
-            className={
-              "relative py-2 px-4 font-normal flex gap-2 items-center "
-            }
-          >
+        <div
+          className={
+            "text-sm font-semibold grid grid-cols-[12rem_1fr_1fr] bg-blue-50"
+          }
+        >
+          <div className={"relative py-2 px-4 flex gap-2 items-center"}>
             Algorytm
           </div>
           {algorithms.map((alg) => (
             <div
               key={alg}
               className={
-                "relative px-4 py-2 font-normal flex gap-2 items-center border-l-[1px] border-slate-200"
+                "relative px-4 py-2 flex gap-2 items-center border-l-[1px] border-slate-200"
               }
             >
               {alg}
@@ -91,7 +99,7 @@ const SummaryTable = () => {
                     className=""
                   >
                     <button
-                      onClick={() => skipRsa()}
+                      onClick={skipRsa}
                       className="flex items-center gap-1 px-2 h-6 bg-slate-800 text-white rounded-md text-xs font-semibold hover:bg-slate-700 transition-all border border-white"
                     >
                       <SkipForward size={14} />
@@ -113,7 +121,10 @@ const SummaryTable = () => {
             key={row.type}
           >
             <div className={"text-sm"}>
-              <span className={"inline-block px-4 py-2"}>{row.title}</span>
+              <span className={"inline-flex items-center gap-2 px-4 py-2"}>
+                {row.icon && row.icon}
+                {row.title}
+              </span>
             </div>
             {algorithms.map((alg) =>
               renderTableRow(alg, row.type, {
@@ -149,7 +160,11 @@ const renderTableRow = (
         (alg === "aes" && data.file?.aes?.finished) ||
         (alg === "rsa" && data.file?.rsa?.finished)
       ) {
-        backgroundColor = "bg-emerald-500";
+        backgroundColor = "bg-emerald-500/75";
+      }
+
+      if (alg === "rsa" && data.file?.rsa?.status === "skipped") {
+        backgroundColor = "bg-amber-500/75";
       }
 
       if (alg === "aes" && data.file?.aes?.progress) {
@@ -160,11 +175,8 @@ const renderTableRow = (
 
       element = (
         <div className={"relative flex gap-1 items-center"}>
-          <span className={"w-10"}>{width.toFixed()}%</span>
           <div
-            className={
-              "relative rounded-full overflow-hidden w-full bg-blue-50 border-[1px] border-slate-200 h-4"
-            }
+            className={"absolute inset-0  overflow-hidden w-full bg-blue-50/50"}
           >
             <motion.div
               initial={{ width: 0 }}
@@ -173,11 +185,50 @@ const renderTableRow = (
               className={`absolute left-0 top-0 h-full transition-colors ${backgroundColor}`}
             ></motion.div>
           </div>
+          <span className={"inline-block z-10 w-10 px-4 py-2"}>
+            {width.toFixed()}%
+          </span>
         </div>
       );
       break;
+
+    case "file":
+      let downloadUrl = "";
+      if (alg === "aes" && data.file?.aes?.downloadUrl) {
+        downloadUrl = data.file.aes.downloadUrl;
+      } else if (alg === "rsa" && data.file?.rsa?.downloadUrl) {
+        downloadUrl = data.file.rsa.downloadUrl;
+      }
+
+      element = (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={"relative"}
+        >
+          {downloadUrl !== "" ? (
+            <a
+              href={downloadUrl}
+              download
+              className={`inline-flex max-w-full items-center gap-1 px-2 h-6 text-white rounded-md text-xs font-semibold bg-blue-700 hover:bg-blue-800 transition-all border border-white`}
+            >
+              <Download size={14} />
+              Pobierz
+            </a>
+          ) : (
+            <button
+              disabled
+              className={`inline-flex max-w-full items-center gap-1 px-2 h-6 text-white rounded-md text-xs font-semibold bg-blue-700  transition-all border border-white opacity-50`}
+            >
+              <Download size={14} />
+              Pobierz
+            </button>
+          )}
+        </motion.div>
+      );
+      break;
     case "keySize":
-      element = <span>{data.config[alg].keySize} bity</span>;
+      element = <span>{data.config[alg].key_size} bity</span>;
       break;
 
     case "config":
@@ -195,7 +246,7 @@ const renderTableRow = (
         throughput = data.average.rsa.throughput;
       }
 
-      element = <span>{throughput.toFixed(2)} MB/s</span>;
+      element = <span>{formatBytes(throughput)}</span>;
       break;
 
     case "averageCpuUsage":
@@ -214,15 +265,17 @@ const renderTableRow = (
       let value;
 
       if (algorithm === "AES") {
-        value = data.file?.aes?.finished
-          ? data.file.aes.time + " s"
-          : "Proces nadal trwa...";
+        value =
+          data.file?.aes?.finished && data.file?.aes?.time
+            ? data.file.aes.time + " s"
+            : "Proces nadal trwa...";
       } else {
-        value = data.file?.rsa?.finished
-          ? data.file.rsa.time + " s"
-          : isRunning
-            ? "Proces nadal trwa..."
-            : "N/A";
+        value =
+          data.file?.rsa?.finished && data.file?.rsa?.time
+            ? data.file.rsa.time + " s"
+            : isRunning
+              ? "Proces nadal trwa..."
+              : "N/A";
       }
 
       element = <span>{value}</span>;
@@ -232,7 +285,9 @@ const renderTableRow = (
   return (
     <div
       key={`${type}.${alg}`}
-      className={"px-4 py-2 border-l-[1px] border-slate-200"}
+      className={`border-l-[1px] border-slate-200 ${
+        type === "progress" ? "" : "px-4 py-2"
+      }`}
     >
       {element}
     </div>

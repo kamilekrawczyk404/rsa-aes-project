@@ -7,11 +7,13 @@ interface SelectorProps<T> {
   items: T[];
   onItemChange: (item: T) => any;
   renderItem: (item: T, withAnnotation: boolean) => ReactNode;
+  disabled?: boolean;
 }
 const Selector = <T extends unknown>({
   items,
   onItemChange,
   renderItem,
+  disabled = false,
 }: SelectorProps<T>) => {
   const selectorRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -38,11 +40,19 @@ const Selector = <T extends unknown>({
   }, [selectorRef]);
 
   return (
-    <div ref={selectorRef} className={"relative !z-10"}>
+    <div
+      ref={selectorRef}
+      className={`relative !z-10 transition-colors ${
+        disabled ? "disabled:opacity-75 cursor-not-allowed" : ""
+      }`}
+    >
       <SelectorItem
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!disabled) setIsOpen(!isOpen);
+        }}
         isSelected={false}
         displayAs={"selected"}
+        disabled={disabled}
       >
         {renderItem(items[selectedIndex], false)}
         <span
@@ -67,11 +77,12 @@ const Selector = <T extends unknown>({
             {items.map((item, index) => (
               <SelectorItem
                 key={index}
+                isSelected={index === selectedIndex}
+                disabled={disabled}
                 onClick={() => {
                   setSelectedIndex(index);
                   onItemChange(item);
                 }}
-                isSelected={index === selectedIndex}
               >
                 {renderItem(item, true)}
               </SelectorItem>
@@ -88,23 +99,27 @@ const SelectorItem = ({
   isSelected,
   children,
   displayAs = "dropdown",
+  disabled = false,
 }: {
   onClick: () => any;
   children: ReactNode;
   isSelected: boolean;
   displayAs?: "dropdown" | "selected";
+  disabled?: boolean;
 }) => {
   return (
     <div
       onClick={onClick}
-      className={`transition-all p-2 rounded-md select-none border-[1px] cursor-pointer ${
+      className={`transition-all p-2 rounded-md select-none border-[1px] ${
+        disabled ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
+      } ${
         isSelected && displayAs === "dropdown"
           ? "bg-blue-100 text-blue-700 font-semibold shadow-sm md:min-w-96 w-full border-blue-200"
-          : "bg-white border-transparent"
+          : `bg-white border-transparent`
       } ${
         displayAs === "dropdown"
           ? ""
-          : "flex items-center justify-between bg-white rounded-lg w-full !border-slate-200"
+          : `flex items-center justify-between bg-white rounded-lg w-full !border-slate-200`
       }`}
     >
       {children}

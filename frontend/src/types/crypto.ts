@@ -15,6 +15,7 @@ export interface BatchSummary {
   total_time: number;
   total_files: number;
   average_throughput: number;
+  average_cpu_usage: number;
 }
 
 export interface UploadResponse {
@@ -25,7 +26,7 @@ export interface UploadResponse {
 // WebSocket Messages
 export type Algorithm = "AES" | "RSA";
 
-export const AES_MODES = ["ECB", "CBC", "CFB", "OFB", "CTR"] as const;
+export const AES_MODES = ["ECB", "CBC", "CFB", "OFB", "CTR", "GCM"] as const;
 export type AesMode = (typeof AES_MODES)[number];
 
 export type AlgorithmMode = AesMode;
@@ -81,7 +82,7 @@ export interface TestSummary {
 export interface StartRaceCommand {
   command: "START_RACE";
   session_id: string;
-  file_id: string;
+  file_ids: string[];
 
   config: {
     aes: { key_size: number; mode: AesMode };
@@ -106,6 +107,7 @@ export interface IncomingWebSocketMessage {
     | "metric_update"
     | "process_finished"
     | "file_start"
+    | "file_completed"
     | "batch_complete"
     | "error";
   file_id?: string;
@@ -114,10 +116,12 @@ export interface IncomingWebSocketMessage {
   data?: MetricDTO;
   total_time?: number;
   download_url?: string;
+  status?: FileRaceStatus;
   summary?: {
     total_time: number;
     total_files: number;
     average_throughput: number;
+    average_cpu_usage: number;
   };
 }
 
@@ -130,11 +134,18 @@ export interface AlgorithmRaceState {
   time?: number;
 }
 
+export type FileRaceStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "error"
+  | "skipped";
+
 export interface FileRaceState {
   fileId: string;
   fileName: string;
   fileSize: number;
-  status: "pending" | "processing" | "completed" | "error" | "skipped";
+  status: FileRaceStatus;
   aes: AlgorithmRaceState;
-  rsa: AlgorithmRaceState & { aborted?: boolean };
+  rsa: AlgorithmRaceState & { status?: FileRaceStatus };
 }
