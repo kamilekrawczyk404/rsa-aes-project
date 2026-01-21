@@ -78,30 +78,29 @@ const SummaryTable = () => {
               {algorithms.map((alg) => (
                 <th
                   key={alg}
-                  className="relative px-4 py-3 border-b border-l border-slate-200"
+                  className="relative px-4 py-3 border-b border-l border-slate-200 w-48"
                 >
-                  <div className="flex gap-2 items-center justify-between">
-                    <span>{alg}</span>
+                  <span className={"block"}>{alg}</span>
 
-                    {isRunning &&
-                      alg === "RSA" &&
-                      currentFile &&
-                      !currentFile.rsa.finished &&
-                      currentFile.aes.finished && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
+                  {isRunning &&
+                    alg === "RSA" &&
+                    currentFile &&
+                    !currentFile.rsa.finished &&
+                    currentFile.aes.finished && (
+                      <motion.div
+                        className={"absolute top-1/2 -translate-y-1/2 right-4"}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                      >
+                        <button
+                          onClick={skipRsa}
+                          className="flex items-center gap-1 px-2 py-1 bg-slate-800 text-white rounded text-xs font-semibold hover:bg-slate-700 transition-colors border border-white/20 shadow-sm whitespace-nowrap"
                         >
-                          <button
-                            onClick={skipRsa}
-                            className="flex items-center gap-1 px-2 py-1 bg-slate-800 text-white rounded text-xs font-semibold hover:bg-slate-700 transition-colors border border-white/20 shadow-sm whitespace-nowrap"
-                          >
-                            <SkipForward size={12} />
-                            Pomiń
-                          </button>
-                        </motion.div>
-                      )}
-                  </div>
+                          <SkipForward size={12} />
+                          Pomiń
+                        </button>
+                      </motion.div>
+                    )}
                 </th>
               ))}
             </tr>
