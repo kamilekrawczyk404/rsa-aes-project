@@ -27,6 +27,7 @@ const AlgorithmsDescription = () => {
         <div className="space-y-24">
           {/*AES SECTION*/}
           <motion.div
+            viewport={{ once: true }}
             variants={variants}
             initial={"initial"}
             whileInView={"animate"}
@@ -67,6 +68,7 @@ const AlgorithmsDescription = () => {
 
           {/* RSA SECTION */}
           <motion.div
+            viewport={{ once: true }}
             variants={variants}
             initial={"initial"}
             whileInView={"animate"}
@@ -76,7 +78,7 @@ const AlgorithmsDescription = () => {
             <div className="flex justify-center sm:order-1 order-2">
               <RsaAnimation />
             </div>
-            <div>
+            <div className={"sm:order-2 order-1"}>
               <div className="inline-flex items-center gap-2 text-blue-700 font-bold mb-4">
                 <GlobeLock size={20} /> Algorytm Asymetryczny
               </div>

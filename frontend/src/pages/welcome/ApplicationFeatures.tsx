@@ -22,6 +22,7 @@ const ApplicationFeatures = () => {
       />
 
       <motion.div
+        viewport={{ once: true }}
         variants={parent}
         initial={"initial"}
         whileInView={"animate"}

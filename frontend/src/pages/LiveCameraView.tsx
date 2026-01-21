@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import Section from "../components/Section.tsx";
 import ComponentContainer from "../layouts/ComponentContainer.tsx";
 import {
+  Cpu,
   Lock,
   Play,
   ShieldAlert,
   ShieldCheck,
   Square,
   Video,
+  Zap,
 } from "lucide-react";
 import useWebcam from "../hooks/useWebcam.ts";
 import Banner from "../components/banners/Banner.tsx";
@@ -23,6 +25,7 @@ import Input from "../components/form/Input.tsx";
 import Button from "../components/button/Button.tsx";
 import Blinker from "../components/dashboard/Blinker.tsx";
 import TextSlider from "../components/texts/TextSlider.tsx";
+import Switch from "../components/form/Switch.tsx";
 
 const LiveCameraView = () => {
   const {
@@ -178,6 +181,11 @@ const LiveCameraView = () => {
     notifyFrameSent,
   ]);
 
+  // Reset watchdog whenever the config is changed
+  useEffect(() => {
+    isWaitingRef.current = false;
+  }, [config]);
+
   const updateConfig = useCallback(
     (field: keyof WebcamConfig, value: any) => {
       const updatedValues: WebcamConfig = {
@@ -270,6 +278,30 @@ const LiveCameraView = () => {
 
           <div className={"flex flex-col flex-1 justify-between gap-3 h-auto"}>
             <div className={"grid sm:grid-cols-2 grid-cols-1 gap-3 w-full"}>
+              <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm col-span-2">
+                <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-slate-700">
+                  {config.useNativeLib ? (
+                    <Zap size={16} className="text-amber-500" />
+                  ) : (
+                    <Cpu size={16} className="text-blue-500" />
+                  )}
+                  Wybór Implementacji
+                </div>
+
+                <Switch
+                  checked={config.useNativeLib}
+                  onChange={(val) => updateConfig("useNativeLib", val)}
+                  label="Użyj szybkiej biblioteki (C/C++)"
+                  description={{
+                    active:
+                      "Wysoka wydajność (PyCryptodome). Idealne do wideo 30 FPS.",
+                    inactive:
+                      "Własna implementacja (Python). Wolna, cele edukacyjne.",
+                  }}
+                  disabled={isStreaming}
+                />
+              </div>
+
               <Input
                 min={5}
                 max={640}
@@ -408,8 +440,8 @@ const LiveCameraView = () => {
             />
             {isStreaming && (
               <div className="text-xs text-slate-100 absolute left-3 top-3 h-6 flex items-center justify-center bg-slate-800 rounded-full">
-                <span className="pl-2 pr-1">Latencja:</span>
-                <span className={"inline-block min-w-12"}>{latency}ms</span>
+                <span className="pl-2">Latencja:</span>
+                <span className={"inline-block  pl-1 pr-2"}>{latency}ms</span>
               </div>
             )}
             {!isStreaming &&

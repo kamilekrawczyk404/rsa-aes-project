@@ -45,6 +45,27 @@ queue_manager_task = None
 LIBRARY_KEYS_CACHE = {}
 
 
+def reset_executor():
+    global executor
+
+    executor.shutdown(wait=False, cancel_futures=True)
+    executor = ProcessPoolExecutor(max_workers=os.cpu_count())
+
+async def cleanup_processes(active_processes: List[Process], queue_manager_task: asyncio.Task):
+    if queue_manager_task and not queue_manager_task.done():
+        queue_manager_task.cancel()
+        try:
+            await queue_manager_task
+        except asyncio.CancelledError:
+            pass
+
+    for p in active_processes:
+        if p.is_alive():
+            p.terminate()
+            p.join(timeout=0.1)
+
+    active_processes.clear()
+
 def run_library_aes(data: bytes, key_size: int, mode_str: str) -> bytes:
     if key_size not in LIBRARY_KEYS_CACHE:
         LIBRARY_KEYS_CACHE[key_size] = os.urandom(key_size // 8)
@@ -53,11 +74,13 @@ def run_library_aes(data: bytes, key_size: int, mode_str: str) -> bytes:
 
     if "GCM" in mode_str:
         aesgcm = AESGCM(key)
-        nonce = b'\0' * 12
+#         nonce = b'\0' * 12
+        nonce = os.urandom(12)
         return aesgcm.encrypt(nonce, data, None)
 
     elif "CBC" in mode_str:
-        iv = b'\0' * 16
+#         iv = b'\0' * 16
+        iv = os.urandom(16)
         mode = modes.CBC(iv)
         cipher = Cipher(algorithms.AES(key), mode, backend=default_backend())
         encryptor = cipher.encryptor()
@@ -164,7 +187,10 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
 
         while True:
-            message = await websocket.receive()
+            try:
+                message = await websocket.receive()
+            except RuntimeError:
+                break
 
             if "bytes" in message:
                 if stream_mode:
@@ -184,7 +210,8 @@ async def websocket_endpoint(websocket: WebSocket):
                             ks = config.get("key_size", 128)
                             impl = config.get("implementation", "our")
 
-                            if mode_raw == "ECB" and impl == "our":
+
+                            if mode_raw == "ECB":
                                 ready_data = await loop.run_in_executor(None, optimize_frame, frame_data)
                             else:
                                 ready_data = frame_data
@@ -210,6 +237,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 command = raw_data.get("command")
 
                 if command == "START_WEBCAM":
+                    await cleanup_processes(active_processes, queue_manager_task)
+
                     current_session_id = raw_data.get("session_id")
                     if "config" in raw_data and "aes" in raw_data["config"]:
                         webcam_config = raw_data["config"]["aes"]
@@ -221,8 +250,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     is_processing = False
                     await websocket.send_json({"type": "info", "message": "Stream zatrzymany"})
 
+                    reset_executor()
+
                 elif command == "START_RACE":
                     current_session_id = raw_data.get("session_id")
+
+                    await cleanup_processes(active_processes, queue_manager_task)
+
                     if queue_manager_task and not queue_manager_task.done():
                         await websocket.send_json({"type": "error", "message": "Szyfrowanie już trwa!"})
                         continue
@@ -264,6 +298,8 @@ async def websocket_endpoint(websocket: WebSocket):
                             p.terminate()
                     active_processes.clear()
                     await websocket.send_json({"type": "info", "message": "Zatrzymano procesy"})
+
+                    reset_executor()
 
     except WebSocketDisconnect:
         print("WebSocket rozłączony")

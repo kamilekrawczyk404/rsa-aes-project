@@ -84,7 +84,7 @@ const Input = ({
         ${
           props["aria-invalid"]
             ? "border-red-500 focus-within:border-red-500 focus-within:ring-red-500/20"
-            : "border-slate-300 hover:border-slate-400"
+            : "border-slate-200 hover:border-slate-300"
         }
         ${disabled ? "bg-slate-50 opacity-60 cursor-not-allowed" : ""}
       `}

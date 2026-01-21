@@ -11,13 +11,19 @@ import {
   useMemo,
 } from "react";
 import { useWebSocketConnection } from "./WebSocketProvider.tsx";
-import type { AesKeySize, AesMode, Algorithm } from "../types/crypto.ts";
+import type {
+  AesKeySize,
+  AesMode,
+  Algorithm,
+  StartWebcamCommand,
+} from "../types/crypto.ts";
 
 export interface WebcamConfig {
   algo: Algorithm;
   mode: AesMode;
   keySize: AesKeySize;
   video: MediaTrackConstraints;
+  useNativeLib: boolean;
 }
 
 interface WebcamContextType {
@@ -35,10 +41,11 @@ export const DEFAULT_CONFIG_OPTIONS: WebcamConfig = {
   mode: "ECB",
   keySize: 128,
   video: {
-    width: { ideal: 40 },
-    height: { ideal: 30 },
+    width: { ideal: 120 },
+    height: { ideal: 80 },
     frameRate: { ideal: 10 },
   },
+  useNativeLib: false,
 };
 
 const WebcamContext = createContext<WebcamContextType | null>(null);
@@ -88,12 +95,20 @@ export const WebcamProvider = ({ children }: { children: ReactNode }) => {
       setIsStreaming(false);
     } else {
       const sessionId = "cam_" + crypto.randomUUID();
-      sendJson({
+
+      const payload: StartWebcamCommand = {
         command: "START_WEBCAM",
         session_id: sessionId,
-        config: { aes: { key_size: config.keySize, mode: config.mode } },
-      });
+        config: {
+          aes: {
+            key_size: config.keySize,
+            mode: config.mode,
+            implementation: config.useNativeLib ? "library" : "our",
+          },
+        },
+      };
 
+      sendJson(payload);
       setIsStreaming(true);
     }
   }, [isConnected, isStreaming, sendJson, config]);

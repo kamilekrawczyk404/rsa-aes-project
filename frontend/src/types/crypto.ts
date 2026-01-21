@@ -44,12 +44,6 @@ export type FileWithMeta = {
   status: "uploading" | "completed" | "error";
 };
 
-export interface CryptoConfig {
-  aes: { keySize: AesKeySize; mode: AesMode };
-  rsa: { keySize: RsaKeySize };
-  files: FileWithMeta[];
-}
-
 export const ALGORITHM_DEFS = {
   AES: {
     id: "AES",
@@ -68,17 +62,6 @@ export const ALGORITHM_DEFS = {
   },
 } as const;
 
-export interface MetricPoint {
-  timestamp: string;
-  sequence: number;
-  cpuUsage: number;
-  ramUsageMB: number;
-}
-
-export interface TestSummary {
-  totalTimeElapsed: number;
-}
-
 export interface StartRaceCommand {
   command: "START_RACE";
   session_id: string;
@@ -95,34 +78,30 @@ export interface ControlCommand {
   session_id?: string;
 }
 
+export interface StartRaceCommand {
+  command: "START_RACE";
+  session_id: string;
+  file_ids: string[];
+
+  config: {
+    aes: { key_size: number; mode: AesMode };
+    rsa: { key_size: number };
+  };
+}
+
+export interface StartWebcamCommand {
+  command: "START_WEBCAM";
+  session_id: string;
+  config: {
+    aes: { key_size: number; mode: AesMode; implementation: "library" | "our" };
+  };
+}
+
 export interface MetricDTO {
   progress: number;
   cpu_usage: number;
   throughput: number;
   processed_bytes: number;
-}
-
-export interface IncomingWebSocketMessage {
-  type:
-    | "metric_update"
-    | "process_finished"
-    | "file_start"
-    | "file_completed"
-    | "batch_complete"
-    | "error";
-  file_id?: string;
-  algorithm?: Algorithm;
-  timestamp?: number;
-  data?: MetricDTO;
-  total_time?: number;
-  download_url?: string;
-  status?: FileRaceStatus;
-  summary?: {
-    total_time: number;
-    total_files: number;
-    average_throughput: number;
-    average_cpu_usage: number;
-  };
 }
 
 export interface AlgorithmRaceState {
