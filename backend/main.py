@@ -6,10 +6,8 @@ import asyncio
 import sys
 from typing import List, Dict
 
-import cv2
-import numpy as np
 from fastapi import FastAPI, WebSocket, UploadFile, File, WebSocketDisconnect, HTTPException
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import BackgroundTasks
 from multiprocessing import Queue, Event, Process
@@ -23,6 +21,10 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from logic.schemas import StartRaceCommand
 from logic.menager import process_queue_task
 from functions._endpoint import what_to_run
+from concurrent.futures import ProcessPoolExecutor
+
+
+executor = ProcessPoolExecutor(max_workers=os.cpu_count())
 
 app = FastAPI()
 
@@ -67,11 +69,13 @@ def run_library_aes(data: bytes, key_size: int, mode_str: str) -> bytes:
         encryptor = cipher.encryptor()
         return encryptor.update(data) + encryptor.finalize()
 
+
 def optimize_frame(frame_bytes: bytes) -> bytes:
-    data = np.frombuffer(frame_bytes, dtype=np.uint8).copy()
-    N = 32
-    tab = (data // N) * N
-    return tab.tobytes()
+    data = bytearray(frame_bytes)
+    for i in range(len(data)):
+        data[i] &= 0xE0
+
+    return bytes(data)
 
 @app.get("/api/config")
 async def get_config():
@@ -166,11 +170,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 if stream_mode:
                     if is_processing:
                         continue
+                    is_processing = True
                     raw_frame = message["bytes"]
 
                     async def process_frame(frame_data, config):
                         nonlocal is_processing
-                        is_processing = True
+
                         try:
                             loop = asyncio.get_running_loop()
 
@@ -187,7 +192,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             if impl == "library":
                                 enc_frame = await loop.run_in_executor(None, run_library_aes, ready_data, ks, ms)
                             else:
-                                result = await loop.run_in_executor(None, what_to_run, ready_data, ks, ms)
+                                result = await loop.run_in_executor(executor, what_to_run, ready_data, ks, ms)
                                 enc_frame = result[0] if isinstance(result, tuple) else result
 
                             await websocket.send_bytes(enc_frame)
