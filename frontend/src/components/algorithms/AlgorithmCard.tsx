@@ -58,7 +58,7 @@ const AlgorithmCard = ({
           <div>{getAlgorithmIcon(def.id)}</div>
           <h3 className={`text-xl font-bold`}>{def.name}</h3>
         </div>
-        <p className="text-sm text-slate-500 mt-1 pr-4">{def.description}</p>
+        <p className="text-sm text-slate-600 mt-1 pr-4">{def.description}</p>
       </div>
 
       <div className={"lg:ml-0 ml-1"}>
@@ -118,7 +118,7 @@ const AlgorithmCard = ({
               className={`text-xs cursor-pointer transition-all ${
                 keySizes[currentKeyIndex] === size
                   ? "scale-125 font-semibold text-blue-700"
-                  : "text-slate-500"
+                  : "text-slate-600"
               }`}
               onClick={() => onKeySizeChange(size)}
             >

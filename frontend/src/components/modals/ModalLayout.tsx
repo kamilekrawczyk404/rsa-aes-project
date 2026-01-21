@@ -30,7 +30,7 @@ const Header = ({ title, description, hideCloseButton }: HeaderProps) => {
           {title}
         </h3>
         {description && (
-          <p className={"mt-2 text-sm text-slate-500"}>{description}</p>
+          <p className={"mt-2 text-sm text-slate-600"}>{description}</p>
         )}
       </div>
 
@@ -89,7 +89,7 @@ const Footer = ({
           {finalOptions.showCancelButton && (
             <button
               type={"button"}
-              className={"text-slate-500"}
+              className={"text-slate-600"}
               onClick={finalOptions.onClose ? finalOptions.onClose : closeModal}
             >
               Anuluj

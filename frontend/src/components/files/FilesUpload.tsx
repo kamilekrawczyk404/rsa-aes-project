@@ -216,7 +216,7 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
           onChange={handleFileInputChange}
           multiple
         />
-        <FileUp className={"text-slate-500"} size={"2rem"} />
+        <FileUp className={"text-slate-600"} size={"2rem"} />
         <div className={"text-center space-y-1"}>
           <h3 className={"text-xl font-semibold"}>
             Przeciągnij i upuść lub{" "}
@@ -230,13 +230,13 @@ const FilesUpload = ({ onFilesChange, className }: FilesUploadProps) => {
             </span>
             , które chcesz zaszyfrować
           </h3>
-          <p className={"text-slate-500 text-sm"}>
+          <p className={"text-slate-600 text-sm"}>
             Maksymalny rozmiar pliku to 10MB
           </p>
         </div>
       </motion.div>
 
-      <p className={"text-slate-500 text-sm mt-1"}>
+      <p className={"text-slate-600 text-sm mt-1"}>
         Akcepowalne pliki:{" "}
         {allowedExtensions.map((t, index) => (
           <span key={t}>
@@ -314,7 +314,7 @@ const FileInstance = ({
             <p className={"text-sm font-semibold line-clamp-2"}>
               {fileMeta.file.name}
             </p>
-            <div className={"text-slate-500 text-xs"}>
+            <div className={"text-slate-600 text-xs"}>
               <span>{getFileSize(fileMeta.file)}</span>
               {fileMeta.status === "uploading" && (
                 <span>• Przetwarzanie...</span>
@@ -328,7 +328,7 @@ const FileInstance = ({
             remove(fileMeta.id);
           }}
         >
-          <X className={"text-slate-500"} size={"1.5rem"} />
+          <X className={"text-slate-600"} size={"1.5rem"} />
         </button>
       </motion.div>
 
@@ -353,7 +353,7 @@ const FileInstance = ({
             transition={{ ease: "linear" }}
           />
         </div>
-        <span className={"text-sm text-slate-500 w-9 text-left"}>
+        <span className={"text-sm text-slate-600 w-9 text-left"}>
           {fileMeta.progress}%
         </span>
       </motion.div>

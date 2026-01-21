@@ -30,7 +30,7 @@ const DashboardLayout = () => {
         }}
         transition={defaultTransition(shouldBeWide)}
         className={
-          "relative sm:p-3 p-2 h-[calc(100dvh)] min-w-[calc(100vw-18rem)] flex sm:mt-0 mt-16"
+          "relative md:p-3 p-2 h-[calc(100dvh)] min-w-[calc(100vw-18rem)] flex md:mt-0 mt-16"
         }
       >
         <Outlet />

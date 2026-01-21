@@ -23,7 +23,7 @@ const Header = () => {
             trigger={!isRunning}
             className={"text-nowrap w-full"}
           />
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-600">
             Sesja aktywna • WebSocket Secure
           </p>
         </div>

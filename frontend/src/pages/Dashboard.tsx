@@ -353,7 +353,7 @@ const ProcessedFile = ({
         >
           {file.fileName}
         </p>
-        <p className="text-xs text-slate-500">{formatBytes(file.fileSize)}</p>
+        <p className="text-xs text-slate-600">{formatBytes(file.fileSize)}</p>
       </div>
 
       <AnimatePresence>

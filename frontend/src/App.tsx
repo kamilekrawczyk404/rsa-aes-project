@@ -3,7 +3,6 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import React from "react";
 import { Cog, House, LayoutDashboard, Video } from "lucide-react";
 import DashboardLayout from "./layouts/DashboardLayout.tsx";
-import Welcome from "./pages/Welcome.tsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Dashboard from "./pages/Dashboard.tsx";
 import { CryptoProcessProvider } from "./context/CryptoContext.tsx";
@@ -14,6 +13,7 @@ import LiveCameraView from "./pages/LiveCameraView.tsx";
 import Configurator from "./pages/Configurator.tsx";
 import { WebSocketProvider } from "./context/WebSocketProvider.tsx";
 import { WebcamProvider } from "./context/WebcamContext.tsx";
+import Welcome from "./pages/welcome/Welcome.tsx";
 
 export type View = "welcome" | "configurator" | "dashboard" | "encryptedWebcam";
 
@@ -31,17 +31,17 @@ export const menuItems: { [T in View]: MenuItem } = {
     icon: <House />,
     element: <Welcome />,
   },
-  dashboard: {
-    link: "/dashboard",
-    label: "Panel główny",
-    icon: <LayoutDashboard />,
-    element: <Dashboard />,
-  },
   configurator: {
     link: "/configurator",
     label: "Konfigurator",
     icon: <Cog />,
     element: <Configurator />,
+  },
+  dashboard: {
+    link: "/dashboard",
+    label: "Panel główny",
+    icon: <LayoutDashboard />,
+    element: <Dashboard />,
   },
   encryptedWebcam: {
     link: "/encrypted-webcam",

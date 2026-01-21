@@ -30,7 +30,7 @@ const Section = ({
       >
         <h2 className={"text-2xl"}>{title}</h2>
         {description && (
-          <p className={"text-slate-500 max-w-prose leading-6"}>
+          <p className={"text-slate-600 max-w-prose leading-6"}>
             {description}
           </p>
         )}

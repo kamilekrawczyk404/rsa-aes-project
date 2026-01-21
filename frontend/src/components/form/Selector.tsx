@@ -42,7 +42,7 @@ const Selector = <T extends unknown>({
   return (
     <div
       ref={selectorRef}
-      className={`relative !z-10 transition-colors ${
+      className={`relative !z-[100] transition-colors ${
         disabled ? "disabled:opacity-75 cursor-not-allowed" : ""
       }`}
     >
@@ -56,7 +56,7 @@ const Selector = <T extends unknown>({
       >
         {renderItem(items[selectedIndex], false)}
         <span
-          className={`inline-block transition-transform duration-200 text-slate-500 ${
+          className={`inline-block transition-transform duration-200 text-slate-600 ${
             isOpen ? "rotate-180" : ""
           }`}
         >
