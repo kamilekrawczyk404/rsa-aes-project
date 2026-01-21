@@ -60,10 +60,10 @@ interface FooterOptions {
 }
 
 const Footer = ({
-  options = {},
+  options,
   className = "",
 }: {
-  options?: Partial<FooterOptions>;
+  options?: FooterOptions;
   className?: string;
 }) => {
   const { closeModal } = useModal();

@@ -3,6 +3,7 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useMemo,
   useState,
 } from "react";
 import { AnimatePresence } from "framer-motion";
@@ -32,16 +33,16 @@ export const ModalProvider = ({ children }: { children: ReactNode }) => {
   const [modals, setModals] = useState<ModalInstance[]>([]);
 
   const openModal = useCallback(
-    (
-      content: ReactNode,
-      options: ModalOptions = {
+    (content: ReactNode, options?: ModalOptions) => {
+      const defaultOptions = {
         onClose: closeModal,
         closeOnBackdropClick: true,
-      },
-    ) => {
+      };
+
+      const finalOptions = { ...defaultOptions, options };
       const id = crypto.randomUUID();
 
-      setModals((prev) => [...prev, { id, content, options }]);
+      setModals((prev) => [...prev, { id, content, options: finalOptions }]);
     },
     [],
   );
@@ -54,15 +55,18 @@ export const ModalProvider = ({ children }: { children: ReactNode }) => {
     setModals([]);
   }, []);
 
+  const modalContextValues = useMemo(
+    () => ({
+      modals,
+      openModal,
+      closeModal,
+      closeAllModals,
+    }),
+    [modals, openModal, closeModal, closeAllModals],
+  );
+
   return (
-    <ModalContext.Provider
-      value={{
-        modals,
-        openModal,
-        closeModal,
-        closeAllModals,
-      }}
-    >
+    <ModalContext.Provider value={modalContextValues}>
       {children}
       <ModalRoot />
     </ModalContext.Provider>

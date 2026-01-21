@@ -5,9 +5,9 @@ import { BugPlay, Loader2 } from "lucide-react";
 import { useFileUpload } from "../hooks/useFileUpload.ts";
 
 const MOCK_SCENARIOS = [
-  { name: "debug_image_hd.jpg", size: 5242880 }, // 5MB
-  // { name: "debug_document.pdf", size: 102400 }, // 100KB
-  // { name: "debug_movie_4k.mp4", size: 154857600 }, // 150MB
+  { name: "debug_image_hd.jpg", size: 5242880 },
+  // { name: "debug_document.pdf", size: 102400 },
+  // { name: "debug_movie_4k.mp4", size: 154857600 }
 ];
 
 const MOCK_CONFIG = {

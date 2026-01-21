@@ -1,21 +1,20 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useModal } from "../context/ModalContext";
 import CryptoSummaryModal from "../components/modals/CryptoSummaryModal";
 import type { BatchSummary, FileRaceState } from "../types/crypto";
-
-// --- FAKE DATA ---
 
 const MOCK_SUMMARY: BatchSummary = {
   total_time: 12.45,
   total_files: 3,
   average_throughput: 1250000.5,
+  average_cpu_usage: 99.3,
 };
 
 const MOCK_QUEUE: FileRaceState[] = [
   {
     fileId: "f1",
     fileName: "dokumentacja_techniczna_2024.pdf",
-    fileSize: 2500000, // 2.5 MB
+    fileSize: 2500000,
     status: "completed",
     aes: {
       progress: 100,
@@ -35,7 +34,7 @@ const MOCK_QUEUE: FileRaceState[] = [
   {
     fileId: "f2",
     fileName: "wakacje_w_sopocie_4k.mp4",
-    fileSize: 154000000, // 154 MB
+    fileSize: 154000000,
     status: "completed",
     aes: {
       progress: 100,
@@ -48,15 +47,15 @@ const MOCK_QUEUE: FileRaceState[] = [
       progress: 100,
       cpu: 0,
       throughput: 0,
-      finished: false, // RSA nie skończył, ale plik completed (bo np. skip)
+      finished: false,
       time: 0,
     },
   },
   {
     fileId: "f3",
     fileName: "tajne_hasla.txt",
-    fileSize: 1024, // 1 KB
-    status: "skipped", // Ten plik został całkowicie pominięty
+    fileSize: 1024,
+    status: "skipped",
     aes: {
       progress: 100,
       cpu: 5.0,
@@ -74,25 +73,14 @@ const MOCK_QUEUE: FileRaceState[] = [
   },
 ];
 
-// --- TRIGGER COMPONENT ---
-
 export const DevModalTrigger = () => {
   const { openModal } = useModal();
-  const mounted = useRef(false);
 
   useEffect(() => {
-    console.log("yep");
-    // Zapobiegamy podwójnemu otwieraniu w React.StrictMode
-    // if (mounted.current) return;
-    // mounted.current = true;
-
-    // Otwieramy modal po krótkim opóźnieniu, żeby Context zdążył się załadować
     const timer = setTimeout(() => {
       console.log("🛠️ DEV: Otwieranie modala z fake danymi...");
 
       openModal(
-        // Przekazujemy mocki jako propsy (musisz dostosować modal - patrz Krok 2)
-        // @ts-ignore - ignorujemy TS jeśli jeszcze nie dodałeś propsów do interfejsu
         <CryptoSummaryModal
           mockSummary={MOCK_SUMMARY}
           mockQueue={MOCK_QUEUE}
@@ -104,5 +92,5 @@ export const DevModalTrigger = () => {
     return () => clearTimeout(timer);
   }, [openModal]);
 
-  return null; // Ten komponent nic nie renderuje w DOM
+  return null;
 };

@@ -25,6 +25,9 @@ import TextSlider from "../components/texts/TextSlider.tsx";
 import Container from "../layouts/Container.tsx";
 import CryptoSummaryModal from "../components/modals/CryptoSummaryModal.tsx";
 
+// Placeholder for storing popup ids that have been loaded for certain files (prevent reopen the same popups when user change tab)
+const notifiedFileIds = new Set<string>();
+
 const Dashboard = () => {
   const {
     isFileProcessed,
@@ -35,22 +38,25 @@ const Dashboard = () => {
     fileQueue,
     currentFile,
     currentFileIndex,
-    // batchSummary,
     skipToNextFile,
     resetRace,
-    disconnect,
   } = useCrypto();
 
   const { addNewPopup, closePopup } = usePopups();
 
-  const { openModal } = useModal();
+  const { openModal, closeModal } = useModal();
 
   const { triggerAutoSwitch, closeAutoSwitch } = useAutoSwitch();
 
   const skipProcessPopupId = useRef("");
 
-  const [hasTriggered, setHasTriggered] = useState(false);
   const [summaryShown, setSummaryShown] = useState(false);
+
+  useEffect(() => {
+    if (fileQueue.length === 0) {
+      notifiedFileIds.clear();
+    }
+  }, [fileQueue.length]);
 
   // Close skipping rsa popup if file changed
   useEffect(() => {
@@ -66,41 +72,42 @@ const Dashboard = () => {
     }
   }, [isSessionInitialized]);
 
-  useEffect(() => {
-    if (!isFileProcessed) {
-      setHasTriggered(false);
-    }
-  }, [isFileProcessed]);
-
   // Auto switch to next file when processing is done
   // If the comparison ended show the summary instead
   useEffect(() => {
     const hasMoreFiles =
       isRunning &&
+      currentFile &&
       fileQueue &&
       fileQueue.length > 0 &&
       currentFileIndex < fileQueue.length - 1;
 
-    if (isFileProcessed && hasMoreFiles && !hasTriggered) {
-      triggerAutoSwitch({
-        popup: {
-          type: "success",
-          title: "Przetwarzanie zakończone",
-          description: "Przejście do następnego pliku...",
-          fadeOut: false,
-        },
-        seconds: 7,
-        onNext: () => {
-          skipToNextFile();
-          closeAutoSwitch();
-        },
-        onCancel: () => {
-          console.log("Anulowano automatyczne przejście");
-          closeAutoSwitch();
-        },
-      });
+    if (isFileProcessed && hasMoreFiles) {
+      // setTimeout(() => {
+      if (!notifiedFileIds.has(currentFile.fileId)) {
+        triggerAutoSwitch({
+          popup: {
+            type: "success",
+            title: "Przetwarzanie zakończone",
+            description: "Przejście do następnego pliku...",
+            fadeOut: false,
+          },
+          seconds: 7,
+          onNext: () => {
+            skipToNextFile();
+            closeAutoSwitch();
+          },
+          onCancel: () => {
+            console.log("Auto skip to next file cancelled");
+            closeAutoSwitch();
+          },
+        });
+      }
 
-      setHasTriggered(true);
+      if (!notifiedFileIds.has(currentFile.fileId)) {
+        notifiedFileIds.add(currentFile.fileId);
+      }
+      // }, 500);
     }
 
     const isQueueCompleted =
@@ -121,15 +128,13 @@ const Dashboard = () => {
 
       openModal(<CryptoSummaryModal />, {
         closeOnBackdropClick: true,
-        onClose: () => {
-          // disconnect();
-          resetRace();
-        },
+        onClose: resetRace,
       });
 
       setSummaryShown(true);
     }
   }, [
+    currentFile,
     isRunning,
     isFileProcessed,
     fileQueue,
@@ -139,32 +144,48 @@ const Dashboard = () => {
     summaryShown,
     skipToNextFile,
     openModal,
-    disconnect,
   ]);
 
   // Message for skipping RSA processing
   useEffect(() => {
-    if (
-      skipProcessPopupId.current === "" &&
-      currentFile &&
-      !currentFile.rsa.finished &&
-      currentFile.aes.finished
-    ) {
-      skipProcessPopupId.current = addNewPopup({
-        title: "AES zakończył swoją pracę",
-        description:
-          "RSA nadal pracuje ze względu na wysoką złożoność obliczeniową. Możesz pominąć resztę procesu RSA.",
-      });
+    const shouldShowPopup =
+      currentFile && !currentFile.rsa.finished && currentFile.aes.finished;
+
+    if (shouldShowPopup) {
+      if (!notifiedFileIds.has(currentFile.fileId)) {
+        skipProcessPopupId.current = addNewPopup({
+          title: "AES zakończył swoją pracę",
+          description:
+            "RSA nadal pracuje ze względu na wysoką złożoność obliczeniową. Możesz pominąć resztę procesu RSA.",
+        });
+
+        notifiedFileIds.add(currentFile.fileId);
+      }
     }
 
-    if (
+    const shouldClosePopup =
       skipProcessPopupId.current !== "" &&
       ((currentFile && currentFile.rsa.finished && currentFile.aes.finished) ||
-        !isRunning)
-    ) {
+        !isRunning);
+
+    if (shouldClosePopup && currentFile) {
       closePopup(skipProcessPopupId.current);
+
+      notifiedFileIds.delete(currentFile.fileId);
+
+      skipProcessPopupId.current = "";
     }
-  }, [currentFile, skipProcessPopupId, isFileProcessed]);
+  }, [
+    currentFile,
+    skipProcessPopupId,
+    isFileProcessed,
+    addNewPopup,
+    closePopup,
+  ]);
+
+  useEffect(() => {
+    return () => closeModal();
+  }, [closeModal]);
 
   return (
     <Section
@@ -193,7 +214,7 @@ const Dashboard = () => {
             </div>
 
             {/*FILES QUEUE*/}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 h-fit">
               <Container className="h-full flex flex-col !p-0">
                 <div className="border-b border-slate-200 bg-slate-50/50 rounded-t-xl p-4">
                   <TextSlider
@@ -217,7 +238,7 @@ const Dashboard = () => {
                   />
                 </div>
 
-                <div className="p-2 space-y-2 overflow-y-auto max-h-[600px] flex-1 p-4">
+                <div className="space-y-2 overflow-y-auto max-h-[600px] flex-1 p-4 sm:mt-0 mt-16">
                   {fileQueue.map((file, index) => {
                     return (
                       <ProcessedFile
@@ -271,7 +292,9 @@ const ProcessedFile = ({
 
   const nextFile = useCallback(() => {
     // Remove the last popup (also skipping to the next file) if user clicks on this button
-    closePopup(popups[popups.length - 1].id);
+    if (popups.length > 1) {
+      closePopup(popups[popups.length - 1].id);
+    }
 
     skipToNextFile();
   }, [skipToNextFile, closePopup, popups]);
@@ -280,7 +303,7 @@ const ProcessedFile = ({
     if (!canShowResults) return;
 
     setCurrentlyDisplayedFile(file.fileId);
-  }, [canShowResults, file]);
+  }, [canShowResults, file.fileId]);
 
   return (
     <div

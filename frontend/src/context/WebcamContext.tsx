@@ -8,6 +8,7 @@ import {
   useRef,
   type Dispatch,
   type SetStateAction,
+  useMemo,
 } from "react";
 import { useWebSocketConnection } from "./WebSocketProvider.tsx";
 import type { AesKeySize, AesMode, Algorithm } from "../types/crypto.ts";
@@ -34,9 +35,9 @@ export const DEFAULT_CONFIG_OPTIONS: WebcamConfig = {
   mode: "ECB",
   keySize: 128,
   video: {
-    width: { ideal: 480 },
-    height: { ideal: 360 },
-    frameRate: { ideal: 60 },
+    width: { ideal: 40 },
+    height: { ideal: 30 },
+    frameRate: { ideal: 10 },
   },
 };
 
@@ -93,11 +94,6 @@ export const WebcamProvider = ({ children }: { children: ReactNode }) => {
         config: { aes: { key_size: config.keySize, mode: config.mode } },
       });
 
-      console.log("json", {
-        command: "START_WEBCAM",
-        session_id: sessionId,
-        config: { aes: { key_size: config.keySize, mode: config.mode } },
-      });
       setIsStreaming(true);
     }
   }, [isConnected, isStreaming, sendJson, config]);
@@ -114,18 +110,29 @@ export const WebcamProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isConnected]);
 
+  const webcamContextValues = useMemo(
+    () => ({
+      isStreaming,
+      config,
+      setConfig,
+      toggleStream,
+      lastFrame,
+      latency,
+      notifyFrameSent,
+    }),
+    [
+      isConnected,
+      config,
+      setConfig,
+      toggleStream,
+      lastFrame,
+      lastFrame,
+      notifyFrameSent,
+    ],
+  );
+
   return (
-    <WebcamContext.Provider
-      value={{
-        isStreaming,
-        config,
-        setConfig,
-        toggleStream,
-        lastFrame,
-        latency,
-        notifyFrameSent,
-      }}
-    >
+    <WebcamContext.Provider value={webcamContextValues}>
       {children}
     </WebcamContext.Provider>
   );

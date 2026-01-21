@@ -8,6 +8,7 @@ import {
   useEffect,
 } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
+import type { WebSocketLike } from "react-use-websocket/dist/lib/types";
 
 const WS_URL = "ws://localhost:8000/ws";
 
@@ -23,7 +24,7 @@ interface WebSocketContextType {
   sendJson: (data: any) => void;
   sendBytes: (bytes: ArrayBuffer) => void;
   connect: () => void;
-  getWebSocket: () => WebSocket | null | undefined;
+  getWebSocket: () => WebSocketLike | null | undefined;
   disconnect: () => void;
 }
 
@@ -51,12 +52,16 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
     [readyState, sendMessage],
   );
 
+  const sendJson = useCallback((data: any) => {
+    sendJsonMessage(data);
+  }, []);
+
   const value = useMemo(
     () => ({
       isConnected: readyState === ReadyState.OPEN,
       lastMessage,
       lastJsonMessage,
-      sendJson: sendJsonMessage,
+      sendJson,
       sendBytes,
       getWebSocket,
       connect: () => {},

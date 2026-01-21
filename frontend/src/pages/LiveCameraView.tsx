@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import Section from "../components/Section.tsx";
 import ComponentContainer from "../layouts/ComponentContainer.tsx";
 import {
@@ -23,11 +23,6 @@ import Input from "../components/form/Input.tsx";
 import Button from "../components/button/Button.tsx";
 import Blinker from "../components/dashboard/Blinker.tsx";
 import TextSlider from "../components/texts/TextSlider.tsx";
-
-export const STREAM_WIDTH = 480;
-export const STREAM_HEIGHT = Math.floor(STREAM_WIDTH * (3 / 4));
-
-const EXPECTED_BUFFER_SIZE = STREAM_WIDTH * STREAM_HEIGHT * 4; // RGBA
 
 const LiveCameraView = () => {
   const {
@@ -57,6 +52,17 @@ const LiveCameraView = () => {
   const isWaitingRef = useRef(false);
   const watchdogRef = useRef<number | null>(null);
 
+  const dims = useMemo(() => {
+    const w = (config.video.width as ConstrainULongRange)?.ideal || 480;
+    const h = (config.video.height as ConstrainULongRange)?.ideal || 360;
+
+    return {
+      width: w,
+      height: h,
+      bufferSize: w * h * 4,
+    };
+  }, [config.video.width, config.video.height]);
+
   useEffect(() => {
     startCamera();
   }, [startCamera]);
@@ -81,22 +87,18 @@ const LiveCameraView = () => {
 
       let dataToDraw = lastFrame;
 
-      if (dataToDraw.length !== EXPECTED_BUFFER_SIZE) {
-        if (dataToDraw.length > EXPECTED_BUFFER_SIZE) {
+      if (dataToDraw.length !== dims.bufferSize) {
+        if (dataToDraw.length > dims.bufferSize) {
           // Truncate the data
-          dataToDraw = dataToDraw.subarray(0, EXPECTED_BUFFER_SIZE);
+          dataToDraw = dataToDraw.subarray(0, dims.bufferSize);
         } else {
-          const temp = new Uint8ClampedArray(EXPECTED_BUFFER_SIZE);
+          const temp = new Uint8ClampedArray(dims.bufferSize);
           temp.set(dataToDraw);
           dataToDraw = temp;
         }
       }
 
-      const imgData = new ImageData(
-        dataToDraw as any,
-        STREAM_WIDTH,
-        STREAM_HEIGHT,
-      );
+      const imgData = new ImageData(dataToDraw as any, dims.width, dims.height);
 
       ctx.putImageData(imgData, 0, 0);
     }
@@ -116,7 +118,8 @@ const LiveCameraView = () => {
       const isLogicallyBlocked = isWaitingRef.current;
 
       // Check if the socket buffer is full
-      const isPhysicallyBlocked = socket && socket.bufferedAmount > 0;
+      const isPhysicallyBlocked =
+        socket && (socket as WebSocket).bufferedAmount > 0;
 
       // If so, skip this frame
       if (isLogicallyBlocked || isPhysicallyBlocked) {
@@ -130,8 +133,8 @@ const LiveCameraView = () => {
 
         if (ctx) {
           // Draw the current video frame to the processing canvas
-          ctx.drawImage(videoRef.current, 0, 0, STREAM_WIDTH, STREAM_HEIGHT);
-          const imageData = ctx.getImageData(0, 0, STREAM_WIDTH, STREAM_HEIGHT);
+          ctx.drawImage(videoRef.current, 0, 0, dims.width, dims.height);
+          const imageData = ctx.getImageData(0, 0, dims.width, dims.height);
 
           // Mark as waiting for server response
           isWaitingRef.current = true;
@@ -266,10 +269,10 @@ const LiveCameraView = () => {
           />
 
           <div className={"flex flex-col flex-1 justify-between gap-3 h-auto"}>
-            <div className={"grid grid-cols-2 gap-3 w-full"}>
+            <div className={"grid sm:grid-cols-2 grid-cols-1 gap-3 w-full"}>
               <Input
-                min={80}
-                max={STREAM_WIDTH}
+                min={5}
+                max={640}
                 label={"Szerokość okna"}
                 type={"number"}
                 value={(config.video.width as ConstrainULongRange).ideal}
@@ -277,8 +280,8 @@ const LiveCameraView = () => {
                 disabled={isStreaming || !isConnected}
               />
               <Input
-                min={60}
-                max={STREAM_HEIGHT}
+                min={5}
+                max={480}
                 label={"Wysokość okna"}
                 type={"number"}
                 value={(config.video.height as ConstrainULongRange).ideal}
@@ -296,7 +299,7 @@ const LiveCameraView = () => {
               />
             </div>
 
-            <div className="flex justify-between gap-3">
+            <div className="flex justify-between gap-3 sm:flex-row flex-col">
               <div className={"flex items-center gap-3"}>
                 <Blinker trigger={isConnected} />
                 <div className={"flex flex-col"}>
@@ -337,7 +340,7 @@ const LiveCameraView = () => {
         </div>
       </ComponentContainer>
 
-      <div className={"grid grid-cols-2 gap-4"}>
+      <div className={"grid sm:grid-cols-2 grid-cols-1 gap-4"}>
         <ComponentContainer
           title={"Obraz z kamery (oryginał)"}
           description={"Ten obraz pochodzi bezpośrednio z kamery."}
@@ -394,8 +397,8 @@ const LiveCameraView = () => {
           >
             <canvas
               ref={canvasRef}
-              width={STREAM_WIDTH}
-              height={STREAM_HEIGHT}
+              width={dims.width}
+              height={dims.height}
               className={`object-cover transform scale-x-[-1] w-full h-full ${
                 !isStreaming || !isConnected ? "hidden" : ""
               }`}
@@ -430,8 +433,8 @@ const LiveCameraView = () => {
       {/*Hidden canvas*/}
       <canvas
         ref={processingCanvasRef}
-        width={STREAM_WIDTH}
-        height={STREAM_HEIGHT}
+        width={dims.width}
+        height={dims.height}
         className={"hidden"}
       />
     </Section>

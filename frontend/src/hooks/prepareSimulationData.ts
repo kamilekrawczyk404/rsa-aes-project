@@ -43,7 +43,8 @@ const initialFileStats = {
 };
 
 const prepareSimulationData = () => {
-  const { currentFileIndex, fileQueue, currentFile, isRunning } = useCrypto();
+  const { currentFileIndex, fileQueue, currentFile, isSessionInitialized } =
+    useCrypto();
 
   const [simulationData, setSimulationData] = useState<SimulationData[]>([]);
 
@@ -66,26 +67,11 @@ const prepareSimulationData = () => {
     }
   }, [fileQueue]);
 
-  // Reset all the fields when file is changed
-  // useEffect(() => {
-  //   setSimulationData((prev) =>
-  //     prev.map((sd) => {
-  //       if (sd.fileId !== currentFile?.fileId) return sd;
-  //
-  //       return {
-  //         ...initialFileState,
-  //         fileId: sd.fileId,
-  //       };
-  //     }),
-  //   );
-  //
-  //   statsRef.current = {
-  //     aes: { throughputSum: 0, cpuSum: 0, count: 0 },
-  //     rsa: { throughputSum: 0, cpuSum: 0, count: 0 },
-  //   };
-  //
-  //   startTimeRef.current = null;
-  // }, [currentFile?.fileId, isRunning]);
+  useEffect(() => {
+    if (!isSessionInitialized && simulationData.length !== 0) {
+      setSimulationData([]);
+    }
+  }, [isSessionInitialized]);
 
   useEffect(() => {
     if (!currentFile) return;

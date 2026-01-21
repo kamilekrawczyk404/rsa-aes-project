@@ -63,79 +63,85 @@ const SummaryTable = () => {
 
   return (
     <ComponentContainer
-      className={"!p-0 overflow-x-auto"}
+      className={"!p-0"}
       title={"Podsumowanie wyników przetwarzania pliku"}
       description={
         "Przegląd wydajności algorytmów kryptograficznych zastosowanych do bieżącego pliku."
       }
       icon={<TextSearch size={"1rem"} />}
     >
-      <section className={"border-b-[1px] border-slate-200 !w-full"}>
-        {/*table header*/}
-        <div
-          className={
-            "text-sm font-semibold grid grid-cols-[12rem_1fr_1fr] bg-blue-50"
-          }
-        >
-          <div className={"relative py-2 px-4 flex gap-2 items-center"}>
-            Algorytm
-          </div>
-          {algorithms.map((alg) => (
-            <div
-              key={alg}
-              className={
-                "relative px-4 py-2 flex gap-2 items-center border-l-[1px] border-slate-200"
-              }
-            >
-              {alg}
-              {isRunning &&
-                alg === "RSA" &&
-                currentFile &&
-                !currentFile.rsa.finished &&
-                currentFile.aes.finished && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className=""
-                  >
-                    <button
-                      onClick={skipRsa}
-                      className="flex items-center gap-1 px-2 h-6 bg-slate-800 text-white rounded-md text-xs font-semibold hover:bg-slate-700 transition-all border border-white"
-                    >
-                      <SkipForward size={14} />
-                      Pomiń RSA
-                    </button>
-                  </motion.div>
-                )}
-            </div>
-          ))}
-        </div>
-      </section>
+      <div className="relative w-full overflow-x-auto rounded-b-lg">
+        <table className="w-full text-sm text-left border-collapse">
+          <thead className="bg-blue-50 text-slate-700 font-semibold">
+            <tr>
+              <th className="py-3 px-4 border-b border-slate-200">Algorytm</th>
+              {algorithms.map((alg) => (
+                <th
+                  key={alg}
+                  className="relative px-4 py-3 border-b border-l border-slate-200"
+                >
+                  <div className="flex gap-2 items-center justify-between">
+                    <span>{alg}</span>
 
-      <section>
-        {tableRows.map((row) => (
-          <div
-            className={
-              "grid grid-cols-[12rem_1fr_1fr] text-sm hover:bg-slate-50 transition-colors [&:not(:last-of-type)]:border-b-[1px] border-slate-200"
-            }
-            key={row.type}
-          >
-            <div className={"text-sm"}>
-              <span className={"inline-flex items-center gap-2 px-4 py-2"}>
-                {row.icon && row.icon}
-                {row.title}
-              </span>
-            </div>
-            {algorithms.map((alg) =>
-              renderTableRow(alg, row.type, {
-                config,
-                file: currentFile!,
-                average: currentFileData.average,
-              }),
-            )}
-          </div>
-        ))}
-      </section>
+                    {isRunning &&
+                      alg === "RSA" &&
+                      currentFile &&
+                      !currentFile.rsa.finished &&
+                      currentFile.aes.finished && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                        >
+                          <button
+                            onClick={skipRsa}
+                            className="flex items-center gap-1 px-2 py-1 bg-slate-800 text-white rounded text-xs font-semibold hover:bg-slate-700 transition-colors border border-white/20 shadow-sm whitespace-nowrap"
+                          >
+                            <SkipForward size={12} />
+                            Pomiń
+                          </button>
+                        </motion.div>
+                      )}
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody className="bg-white divide-y divide-slate-200">
+            {tableRows.map((row) => (
+              <tr
+                key={row.type}
+                className="hover:bg-slate-50 transition-colors"
+              >
+                <td className="px-4 font-medium text-slate-700">
+                  <span className="inline-flex items-center gap-2">
+                    {row.icon && (
+                      <span className="text-slate-400">{row.icon}</span>
+                    )}
+                    {row.title}
+                  </span>
+                </td>
+
+                {/* Dane dla każdego algorytmu */}
+                {algorithms.map((alg) => (
+                  <td
+                    key={alg}
+                    className={`text-slate-600 ${
+                      row.type !== "progress" ? "" : ""
+                    }`}
+                  >
+                    {renderTableRow(alg, row.type, {
+                      config,
+                      file: currentFile!,
+                      average: currentFileData.average,
+                    })}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </ComponentContainer>
   );
 };
@@ -176,7 +182,7 @@ const renderTableRow = (
       element = (
         <div className={"relative flex gap-1 items-center"}>
           <div
-            className={"absolute inset-0  overflow-hidden w-full bg-blue-50/50"}
+            className={"absolute inset-0 overflow-hidden w-full bg-blue-50/50"}
           >
             <motion.div
               initial={{ width: 0 }}
