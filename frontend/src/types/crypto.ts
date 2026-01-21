@@ -26,13 +26,13 @@ export interface UploadResponse {
 // WebSocket Messages
 export type Algorithm = "AES" | "RSA";
 
-export const AES_MODES = ["ECB", "CBC", "CFB", "OFB", "CTR", "GCM"] as const;
+export const AES_MODES = ["ECB", "CBC", "GCM"] as const;
 export type AesMode = (typeof AES_MODES)[number];
 
 export type AlgorithmMode = AesMode;
 
 export const AES_KEY_SIZES = [128, 192, 256] as const;
-export const RSA_KEY_SIZES = [1024, 2048, 4096, 8192] as const;
+export const RSA_KEY_SIZES = [1024, 2048, 4096] as const;
 
 export type AesKeySize = (typeof AES_KEY_SIZES)[number];
 export type RsaKeySize = (typeof RSA_KEY_SIZES)[number];

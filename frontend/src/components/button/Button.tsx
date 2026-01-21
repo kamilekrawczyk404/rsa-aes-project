@@ -10,6 +10,7 @@ const SkeletonButton = ({
   return (
     <motion.button
       type={"button"}
+      whileHover={{ scale: 1.025 }}
       whileTap={{
         scale: 0.99,
       }}
@@ -66,7 +67,26 @@ const ClosingButton = ({ children, ...props }: ComponentProps<"button">) => {
   );
 };
 
+const SecondaryButton = ({
+  onClick,
+  children,
+  disabled = false,
+}: ComponentProps<"button">) => {
+  return (
+    <SkeletonButton
+      className={
+        "font-semibold text-slate-600 hover:bg-slate-100 transition-colors border border-slate-300"
+      }
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {children}
+    </SkeletonButton>
+  );
+};
+
 export const Button = {
+  SecondaryButton: SecondaryButton,
   Process: ProcessButton,
   Danger: DangerButton,
   Close: ClosingButton,

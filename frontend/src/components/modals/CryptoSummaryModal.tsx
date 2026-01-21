@@ -243,7 +243,7 @@ const SimulationSingleResult = ({
   value: string;
 }) => (
   <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-    <span className="block text-slate-500 text-xs uppercase font-semibold">
+    <span className="block text-slate-600 text-xs uppercase font-semibold">
       {title}
     </span>
     <span className="text-lg font-bold">{value}</span>
@@ -258,7 +258,7 @@ const FileRow = ({ file }: { file: FileRaceState }) => {
           <span className="truncate" title={file.fileName}>
             {file.fileName}
           </span>
-          <span className="text-xs text-slate-500 font-normal">
+          <span className="text-xs text-slate-600 font-normal">
             {formatBytes(file.fileSize)}
           </span>
         </td>

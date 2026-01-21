@@ -15,7 +15,7 @@ const useIsMobile = () => {
     return () => window.removeEventListener("resize", handleWindowChange);
   }, []);
 
-  if (screenSize !== null) return screenSize <= 768;
+  if (screenSize !== null) return screenSize <= 991;
 
   return false;
 };

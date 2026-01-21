@@ -252,14 +252,14 @@ const LiveCameraView = () => {
                         {item.isSecure ? <ShieldCheck /> : <ShieldAlert />}
                       </span>
                     </div>
-                    <p className={"text-sm text-slate-500"}>
+                    <p className={"text-sm text-slate-600"}>
                       {item.description}
                     </p>
                   </div>
                 ) : (
                   <span>
                     {item.mode}{" "}
-                    <span className={"mr-2 text-slate-500"}>
+                    <span className={"mr-2 text-slate-600"}>
                       ({item.label})
                     </span>
                   </span>
@@ -311,7 +311,7 @@ const LiveCameraView = () => {
                     }}
                     className={"text-nowrap"}
                   />
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-600">
                     Sesja aktywna • WebSocket Secure
                   </p>
                 </div>
@@ -365,7 +365,7 @@ const LiveCameraView = () => {
               }}
             />
 
-            {!cameraActive && (
+            {!cameraActive && !cameraError && (
               <Banner.Info
                 title={"Oczekiwanie na obraz z kamery"}
                 description={

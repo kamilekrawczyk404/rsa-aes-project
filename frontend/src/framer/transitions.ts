@@ -1,4 +1,4 @@
-import type { Transition, Variants } from "framer-motion";
+import { stagger, type Transition, type Variants } from "framer-motion";
 
 export const defaultTransition = (
   delayOnStart: boolean = false,
@@ -31,6 +31,45 @@ export const appearingVariants = (
     exit: {
       opacity: 0,
       translateY: direction.startsWith("up") ? yOffset : -yOffset,
+    },
+  };
+};
+
+export const staggeredVariants = (
+  direction: "up" | "down" = "up",
+  staggerDuration = 0.2,
+): { parent: Variants; children: Variants } => {
+  const yOffset = 5;
+
+  return {
+    parent: {
+      initial: {
+        opacity: 0,
+      },
+      animate: {
+        transition: {
+          when: "beforeChildren",
+          delayChildren: stagger(staggerDuration),
+        },
+        opacity: 1,
+      },
+      exit: {
+        opacity: 0,
+      },
+    },
+    children: {
+      initial: {
+        opacity: 0,
+        translateY: direction === "up" ? yOffset : -yOffset,
+      },
+      animate: {
+        opacity: 1,
+        translateY: 0,
+      },
+      exit: {
+        opacity: 0,
+        translateY: direction === "up" ? -yOffset : yOffset,
+      },
     },
   };
 };

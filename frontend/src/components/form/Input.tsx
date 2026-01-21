@@ -109,7 +109,7 @@ const Input = ({
         <label
           className={`
             absolute left-4 top-1/2 -translate-y-1/2 
-            text-slate-500 text-sm transition-all duration-200 pointer-events-none
+            text-slate-600 text-sm transition-all duration-200 pointer-events-none
             peer-focus:top-1 peer-focus:left-3 peer-focus:text-[10px] peer-focus:text-blue-500 peer-focus:-translate-y-0
             peer-placeholder-shown:top-1/2 peer-placeholder-shown:text-sm
             peer-[:not(:placeholder-shown)]:top-1 peer-[:not(:placeholder-shown)]:left-3 peer-[:not(:placeholder-shown)]:text-[10px] peer-[:not(:placeholder-shown)]:-translate-y-0
