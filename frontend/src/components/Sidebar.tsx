@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { menuItems } from "../App.tsx";
 import { motion } from "framer-motion";
 import { defaultTransition } from "../framer/transitions.ts";
+import useIsMobile from "../hooks/useIsMobile.ts";
 
 type SidebarProps = {
   handleWidthState: {
@@ -13,13 +14,13 @@ type SidebarProps = {
 };
 
 const Sidebar = ({ handleWidthState: { isWide, setIsWide } }: SidebarProps) => {
+  const options = defaultTransition();
   return (
     <motion.aside
       initial={false}
-      animate={{ width: isWide ? "16rem" : "100dvw" }}
+      animate={{ width: isWide ? "16rem" : "4rem" }}
       transition={{
-        duration: 0.3,
-        ...defaultTransition(isWide),
+        ...options,
       }}
       className={
         "lg:h-[calc(100dvh-1.5rem)] h-fit flex lg:flex-col fixed left-0 top-0 bg-slate-50 shadow-sm z-[100] gap-4 lg:m-3 rounded-lg"
@@ -38,19 +39,24 @@ const Sidebar = ({ handleWidthState: { isWide, setIsWide } }: SidebarProps) => {
           <motion.h1
             initial={false}
             animate={{ opacity: isWide ? 1 : 0, width: isWide ? "auto" : 0 }}
-            transition={defaultTransition(isWide)}
+            transition={{
+              duration: 0.2,
+            }}
             className={"font-semibold text-2xl text-nowrap lg:ml-3"}
           >
             AES & RSA
           </motion.h1>
         </div>
         <motion.button
-          initial={false}
+          initial={{ opacity: 1 }}
           animate={{
             opacity: isWide ? 1 : 0,
-            display: isWide ? "inline-block" : "none",
+            // display: isWide ? "inline-block" : "none",
           }}
-          transition={defaultTransition(isWide)}
+          transition={{
+            duration: 0.2,
+            delay: isWide ? 0.5 : 0,
+          }}
           onClick={() => setIsWide(!isWide)}
           className={"lg:ml-4"}
         >
@@ -85,7 +91,10 @@ type SideBarLinkProps = {
 };
 
 const SideBarLink = ({ to, title, icon, isWide }: SideBarLinkProps) => {
+  const options = defaultTransition();
+
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   return (
     <Link
@@ -97,12 +106,12 @@ const SideBarLink = ({ to, title, icon, isWide }: SideBarLinkProps) => {
       <motion.span
         initial={false}
         animate={{
-          marginLeft: isWide
+          marginLeft: !isMobile
             ? to === location.pathname
               ? "1rem"
               : ".5rem"
             : "",
-          marginBottom: !isWide
+          marginBottom: isMobile
             ? to === location.pathname
               ? ".5rem"
               : "0rem"
@@ -119,7 +128,9 @@ const SideBarLink = ({ to, title, icon, isWide }: SideBarLinkProps) => {
             opacity: isWide ? 1 : 0,
             display: isWide ? "inline" : "none",
           }}
-          transition={defaultTransition(isWide)}
+          transition={{
+            duration: 0.2,
+          }}
         >
           {title}
         </motion.span>

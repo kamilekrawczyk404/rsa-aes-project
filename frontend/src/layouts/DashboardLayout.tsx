@@ -28,7 +28,7 @@ const DashboardLayout = () => {
         animate={{
           marginLeft: shouldBeWide ? "17rem" : isMobile ? "0" : "4.75rem",
         }}
-        transition={defaultTransition(shouldBeWide)}
+        transition={defaultTransition()}
         className={
           "relative md:p-3 p-2 h-[calc(100dvh)] min-w-[calc(100vw-18rem)] flex md:mt-0 mt-16"
         }
