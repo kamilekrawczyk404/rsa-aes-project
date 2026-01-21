@@ -110,7 +110,7 @@ const Configurator = () => {
         />
       ) : (
         <>
-          <div className={"flex lg:flex-row flex-col gap-4 justify-between"}>
+          <div className={"flex lg:flex-row flex-col gap-4 [&>div]:flex-1"}>
             {Object.entries(config).map(([key, params]) => {
               if (key !== "files")
                 return (

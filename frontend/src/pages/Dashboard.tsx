@@ -245,6 +245,7 @@ const Dashboard = () => {
                         key={file.fileId}
                         file={file}
                         isCurrent={index === currentFileIndex}
+                        onNextFile={closeAutoSwitch}
                       />
                     );
                   })}
@@ -263,9 +264,11 @@ const Dashboard = () => {
 const ProcessedFile = ({
   file,
   isCurrent,
+  onNextFile,
 }: {
   file: FileRaceState;
   isCurrent: boolean;
+  onNextFile: () => void;
 }) => {
   const {
     currentFile,
@@ -275,8 +278,6 @@ const ProcessedFile = ({
     skipToNextFile,
     setCurrentlyDisplayedFile,
   } = useCrypto();
-
-  const { closePopup, popups } = usePopups();
 
   const canShowResults =
     !isRunning && (file.status === "completed" || file.status === "skipped");
@@ -291,13 +292,9 @@ const ProcessedFile = ({
   const isSkipped = file.status === "skipped";
 
   const nextFile = useCallback(() => {
-    // Remove the last popup (also skipping to the next file) if user clicks on this button
-    if (popups.length > 1) {
-      closePopup(popups[popups.length - 1].id);
-    }
-
+    onNextFile();
     skipToNextFile();
-  }, [skipToNextFile, closePopup, popups]);
+  }, [skipToNextFile, onNextFile]);
 
   const showFileResults = useCallback(() => {
     if (!canShowResults) return;

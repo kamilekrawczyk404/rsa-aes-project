@@ -26,7 +26,7 @@ const Section = ({
         initial={"initial"}
         animate={"animate"}
         exit={"exit"}
-        className={"space-y-1 z-10 bg-slate-50 flex flex-col max-w-7xl"}
+        className={"space-y-1 z-10 bg-slate-50 block w-full max-w-6xl mx-auto"}
       >
         <h2 className={"text-2xl"}>{title}</h2>
         {description && (
@@ -41,7 +41,9 @@ const Section = ({
         initial={"initial"}
         animate={"animate"}
         exit={"exit"}
-        className={"flex flex-col lg:gap-8 gap-4 basis-full max-w-5xl"}
+        className={
+          "flex flex-col lg:gap-8 gap-4 basis-full max-w-6xl w-full mx-auto"
+        }
       >
         {children}
       </motion.div>

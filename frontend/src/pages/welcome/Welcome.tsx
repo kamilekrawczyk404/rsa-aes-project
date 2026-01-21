@@ -4,7 +4,7 @@ import AlgorithmsDescription from "./AlgorithmsDescriptions.tsx";
 
 const Welcome = () => {
   return (
-    <div className="rounded-lg">
+    <div className="rounded-lg w-full">
       <Hero />
 
       <ApplicationFeatures />

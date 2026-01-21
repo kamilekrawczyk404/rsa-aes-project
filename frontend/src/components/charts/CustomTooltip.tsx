@@ -1,7 +1,7 @@
 import Container from "../../layouts/Container.tsx";
 import { formatBytes } from "../../utils/formatters.ts";
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, unit }: any) => {
   if (active && payload && payload.length) {
     return (
       <Container className={"text-xs !p-3"}>
@@ -12,7 +12,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             style={{ color: entry.color }}
             className="font-mono"
           >
-            {entry.name}: {formatBytes(entry.value)}
+            {entry.name}:{" "}
+            {unit === "(%)" ? entry.value + "(%)" : formatBytes(entry.value)}
           </p>
         ))}
       </Container>

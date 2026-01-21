@@ -8,9 +8,9 @@ import { useModal } from "../context/ModalContext.tsx";
 
 const DashboardLayout = () => {
   const { closeAllModals } = useModal();
+  const location = useLocation();
   const isMobile = useIsMobile();
 
-  const location = useLocation();
   const [isWide, setIsWide] = useState(true);
 
   const shouldBeWide = !isMobile && isWide;
@@ -29,9 +29,7 @@ const DashboardLayout = () => {
           marginLeft: shouldBeWide ? "17rem" : isMobile ? "0" : "4.75rem",
         }}
         transition={defaultTransition()}
-        className={
-          "relative md:p-3 p-2 h-[calc(100dvh)] min-w-[calc(100vw-18rem)] flex md:mt-0 mt-16"
-        }
+        className={`relative md:p-3 p-2 h-[calc(100dvh)] flex md:mt-0 mt-16`}
       >
         <Outlet />
       </motion.main>
