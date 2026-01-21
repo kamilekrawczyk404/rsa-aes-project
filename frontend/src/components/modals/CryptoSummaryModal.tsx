@@ -76,11 +76,16 @@ const CryptoSummaryModal = ({
   const winner = useMemo(() => {
     if (!batchSummary) return null;
 
-    return simulationData.every(
-      (data) => data.average.aes.throughput > data.average.rsa.throughput,
-    )
-      ? "AES"
-      : "RSA";
+    const aesThroughput = simulationData.reduce(
+      (acc, curr) => (acc += curr.average.aes.throughput),
+      0,
+    );
+    const rsaThroughput = simulationData.reduce(
+      (acc, curr) => (acc += curr.average.rsa.throughput),
+      0,
+    );
+
+    return aesThroughput > rsaThroughput ? "AES" : "RSA";
   }, [batchSummary, simulationData]);
 
   const performanceDiff = useMemo(() => {
@@ -113,6 +118,10 @@ const CryptoSummaryModal = ({
     navigate(menuItems.configurator.link);
   }, [closeModal, navigate, resetRace]);
 
+  const onClose = useCallback(() => {
+    closeModal();
+  }, [closeModal, resetRace]);
+
   if (!batchSummary) return null;
 
   return (
@@ -124,7 +133,7 @@ const CryptoSummaryModal = ({
         }
       />
       <ModalLayout.Body>
-        <div className="grid grid-cols-4 gap-4 text-sm">
+        <div className="grid md:grid-cols-4 sm:grid-cols-2 grid-cols-1 gap-4 text-sm">
           <SimulationSingleResult
             title={"Przetworzone Pliki"}
             value={batchSummary?.total_files.toString() || "0"}
@@ -221,7 +230,7 @@ const CryptoSummaryModal = ({
           </div>
         </ComponentContainer>
       </ModalLayout.Body>
-      <ModalLayout.Footer options={{ onProceed }} />
+      <ModalLayout.Footer options={{ onProceed, onClose }} />
     </ModalLayout>
   );
 };
@@ -289,8 +298,6 @@ const renderMetric = (
     // Badge with file status
     case "status": {
       let effectiveStatus = "error";
-
-      // console.log("DANE", alg, globalStatus, data);
 
       if (alg === "rsa" && globalStatus === "skipped") {
         effectiveStatus = "skipped";

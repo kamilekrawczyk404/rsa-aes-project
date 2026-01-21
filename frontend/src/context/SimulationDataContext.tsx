@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext } from "react";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 import prepareSimulationData, {
   initialFileState,
   type SimulationData,
@@ -20,16 +20,19 @@ export const SimulationDataProvider = ({
   const { currentFileIndex } = useCrypto();
   const simulationData = prepareSimulationData();
 
+  const simulationDataValues = useMemo(
+    () => ({
+      simulationData,
+      currentFileData:
+        currentFileIndex > -1
+          ? simulationData[currentFileIndex]
+          : initialFileState,
+    }),
+    [currentFileIndex, simulationData],
+  );
+
   return (
-    <SimulationDataContext.Provider
-      value={{
-        simulationData,
-        currentFileData:
-          currentFileIndex > -1
-            ? simulationData[currentFileIndex]
-            : initialFileState,
-      }}
-    >
+    <SimulationDataContext.Provider value={simulationDataValues}>
       {children}
     </SimulationDataContext.Provider>
   );

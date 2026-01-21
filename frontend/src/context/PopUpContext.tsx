@@ -3,6 +3,7 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useMemo,
   useState,
 } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -58,14 +59,17 @@ export const PopupProvider = ({ children }: { children: ReactNode }) => {
     );
   }, []);
 
+  const popupContextValues = useMemo(
+    () => ({
+      popups,
+      addNewPopup,
+      closePopup,
+    }),
+    [popups, addNewPopup, closePopup],
+  );
+
   return (
-    <PopupContext.Provider
-      value={{
-        popups,
-        addNewPopup,
-        closePopup,
-      }}
-    >
+    <PopupContext.Provider value={popupContextValues}>
       {children}
       <section className={"fixed bottom-4 right-4 !z-[100]"}>
         <div className={"relative"}>

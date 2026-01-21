@@ -38,5 +38,5 @@ export const useAutoSwitch = () => {
     if (autoSwitchId.current !== "") closePopup(autoSwitchId.current);
   }, [closePopup]);
 
-  return { triggerAutoSwitch, closeAutoSwitch };
+  return { autoSwitchId, triggerAutoSwitch, closeAutoSwitch };
 };

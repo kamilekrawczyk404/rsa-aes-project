@@ -1,15 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar.tsx";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { defaultTransition } from "../framer/transitions.ts";
 import useIsMobile from "../hooks/useIsMobile.ts";
+import { useModal } from "../context/ModalContext.tsx";
 
 const DashboardLayout = () => {
+  const { closeAllModals } = useModal();
   const isMobile = useIsMobile();
+
+  const location = useLocation();
   const [isWide, setIsWide] = useState(true);
 
   const shouldBeWide = !isMobile && isWide;
+
+  useEffect(() => {
+    closeAllModals();
+  }, [closeAllModals, location.pathname]);
 
   return (
     <div className={"relative min-h-screen tracking-tight !w-screen"}>
@@ -18,11 +26,11 @@ const DashboardLayout = () => {
       <motion.main
         initial={false}
         animate={{
-          marginLeft: shouldBeWide ? "17rem" : isMobile ? "4.5rem" : "4.75rem",
+          marginLeft: shouldBeWide ? "17rem" : isMobile ? "0" : "4.75rem",
         }}
         transition={defaultTransition(shouldBeWide)}
         className={
-          "relative sm:p-3 p-2 h-[calc(100dvh)] min-w-[calc(100vw-18rem)] flex"
+          "relative sm:p-3 p-2 h-[calc(100dvh)] min-w-[calc(100vw-18rem)] flex sm:mt-0 mt-16"
         }
       >
         <Outlet />

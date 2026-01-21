@@ -9,7 +9,7 @@ const Header = () => {
   const { isConnected, isRunning, queueProgress, stopAll } = useCrypto();
 
   return (
-    <Container className="flex justify-between items-center">
+    <Container className="flex sm:flex-row flex-col justify-between items-center">
       <div className="flex items-center gap-4 basis-full">
         <Blinker trigger={isConnected} />
         <div className={"w-full"}>

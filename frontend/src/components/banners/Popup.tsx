@@ -47,16 +47,6 @@ const Popup = ({
     }
   }, [fadeOut, closePopup, id]);
 
-  // useEffect(() => {
-  //   if (position > currentIndex) {
-  //     const timeout = setTimeout(() => {
-  //       // setCurrentIndex(position);
-  //     }, 400);
-  //
-  //     return () => clearTimeout(timeout);
-  //   }
-  // }, [position]);
-
   return (
     <motion.div
       initial={{
@@ -86,7 +76,7 @@ const Popup = ({
         bottom: 0,
         right: 0,
       }}
-      className={`overflow-hidden w-96 rounded-lg border shadow-sm p-3 flex transition-all duration-300 flex-col
+      className={`overflow-hidden sm:w-96 w-[calc(100vw-2rem)] rounded-lg border shadow-sm p-3 flex transition-all duration-300 flex-col
         ${styling.border} ${styling.background} ${styling.shadow}
         ${fadeOut ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0"}
       `}

@@ -1,4 +1,10 @@
-import { createContext, type ReactNode, useCallback, useContext } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useMemo,
+} from "react";
 import type {
   Algorithm,
   BatchSummary,
@@ -11,7 +17,6 @@ import type {
 } from "../types/crypto.ts";
 import { useEffect, useRef, useState } from "react";
 import type { LocalConfig } from "../pages/Configurator.tsx";
-import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 import { useWebSocketConnection } from "./WebSocketProvider.tsx";
 
 export interface CryptoContextValues {
@@ -30,12 +35,10 @@ export interface CryptoContextValues {
     files: UploadedFile[],
     config: any,
   ) => void;
-  // startProcessing: () => void;
   skipRsa: () => void;
   stopAll: () => void;
   resetRace: () => void;
   setCurrentlyDisplayedFile: (fileId: string) => void;
-  disconnect: () => void;
   skipToNextFile: () => void;
 }
 
@@ -48,14 +51,14 @@ export const CryptoProcessProvider = ({
   children: ReactNode;
 }) => {
   // If race is running
-
   const { isConnected, sendJson, lastJsonMessage, disconnect } =
-    useWebSocketConnection();
+    useWebSocketConnection({ onDisconnect: () => setSessionId(null) });
 
   const [hasSentStartedCommand, setHasSentStartedCommand] =
     useState<boolean>(false);
 
   const [sessionId, setSessionId] = useState<string | null>(null);
+
   // Queue of files to be processed
   const [fileQueue, setFileQueue] = useState<UploadedFile[]>([]);
 
@@ -139,6 +142,8 @@ export const CryptoProcessProvider = ({
       if (currentFile && msg.file_id === currentFile.fileId) {
         console.log("File ID matches current file. Processing next file.");
         setIsFileProcessed(true);
+
+        completeProcessedFile(currentFile.fileId);
       } else {
         console.log("File ID does not match current file. Ignoring.");
       }
@@ -154,18 +159,7 @@ export const CryptoProcessProvider = ({
       });
 
       // Set the status of the last file to processed
-      setRaceState((prev) =>
-        prev.map((f, index) => {
-          if (index !== currentFileIndex) return f;
-
-          if (f.status === "skipped" || f.status === "error") return f;
-
-          return {
-            ...f,
-            status: "completed",
-          };
-        }),
-      );
+      completeProcessedFile(currentFile.fileId);
 
       // Process is not running now
       setIsRunning(false);
@@ -173,130 +167,144 @@ export const CryptoProcessProvider = ({
     }
   }, [lastJsonMessage]);
 
-  // Files
-  useEffect(() => {
-    if (!isSessionInitialized) {
-      if (currentFile && currentFile.aes.finished && currentFile.rsa.finished) {
-        setIsFileProcessed(true);
-      }
-      return;
-    }
-
-    if (currentFile && currentFile.aes.finished && currentFile.rsa.finished) {
-      setIsFileProcessed(true);
-
+  const updateRaceMetrics = useCallback(
+    (alg: Algorithm, data: MetricDTO) => {
       setRaceState((prev) =>
         prev.map((rs, index) => {
           if (index !== currentFileIndex) return rs;
 
-          if (rs.status === "skipped") return rs;
-
           return {
             ...rs,
-            status: "completed",
+            [alg.toLowerCase()]: {
+              ...rs[alg.toLowerCase() as "aes" | "rsa"],
+              progress: data.progress,
+              cpu: data.cpu_usage,
+              throughput: data.throughput,
+            },
           };
         }),
       );
-    } else {
-      setIsFileProcessed(false);
-    }
-  }, [raceState, isSessionInitialized]);
+    },
+    [currentFileIndex],
+  );
 
-  const updateRaceMetrics = (alg: Algorithm, data: MetricDTO) => {
+  const completeAlgorithm = useCallback(
+    (alg: Algorithm, url?: string, time?: number, status?: FileRaceStatus) => {
+      setRaceState((prev) =>
+        prev.map((rs, index) => {
+          if (index !== currentFileIndex) return rs;
+
+          let fileStatus = rs.status;
+
+          if (
+            (alg === "AES" && rs.rsa.finished) ||
+            (alg === "RSA" && rs.aes.finished)
+          ) {
+            fileStatus = "completed";
+          }
+
+          let algorithmStatus = "processing";
+
+          if (alg === "AES" && rs.aes.finished) {
+            algorithmStatus = "completed";
+          } else if (alg === "RSA" && rs.rsa.finished) {
+            algorithmStatus = "completed";
+          } else if (status === "skipped") {
+            algorithmStatus = "skipped";
+          }
+
+          return {
+            ...rs,
+            status: fileStatus,
+            [alg.toLowerCase()]: {
+              ...rs[alg.toLowerCase() as "aes" | "rsa"],
+              finished: true,
+              downloadUrl: url,
+              time,
+              status: algorithmStatus,
+              progress:
+                algorithmStatus === "completed"
+                  ? 100
+                  : rs[alg.toLowerCase() as "aes" | "rsa"].progress,
+            },
+          };
+        }),
+      );
+    },
+    [currentFileIndex],
+  );
+
+  const initializeSession = useCallback(
+    (sessId: string, files: UploadedFile[], config: any) => {
+      setSessionId(sessId);
+
+      setFileQueue(files);
+
+      setRaceState(
+        files.map((file) => ({
+          fileId: file.id,
+          fileName: file.name,
+          fileSize: file.size,
+          status: "pending",
+          aes: { progress: 0, cpu: 0, throughput: 0, finished: false },
+          rsa: { progress: 0, cpu: 0, throughput: 0, finished: false },
+        })),
+      );
+
+      configRef.current = config;
+
+      setCurrentFileIndex(-1);
+      setHasSentStartedCommand(false);
+      setIsRunning(false);
+      setBatchSummary(null);
+    },
+    [],
+  );
+
+  // Process the next file in the queue
+  const processNextFile = useCallback(() => {
+    const index = currentFileIndex + 1;
+
+    if (index >= fileQueue.length) return;
+
+    setCurrentFileIndex(index);
+    setIsFileProcessed(false);
+
     setRaceState((prev) =>
-      prev.map((rs, index) => {
-        if (index !== currentFileIndex) return rs;
+      prev.map((rs, rsIndex) => {
+        if (rsIndex !== index) return rs;
 
         return {
           ...rs,
-          [alg.toLowerCase()]: {
-            ...rs[alg.toLowerCase() as "aes" | "rsa"],
-            progress: data.progress,
-            cpu: data.cpu_usage,
-            throughput: data.throughput,
-          },
+          status: "processing",
         };
       }),
     );
-  };
+  }, [currentFileIndex, fileQueue]);
 
-  const completeAlgorithm = (
-    alg: Algorithm,
-    url?: string,
-    time?: number,
-    status?: FileRaceStatus,
-  ) => {
-    setRaceState((prev) =>
-      prev.map((rs, index) => {
-        if (index !== currentFileIndex) return rs;
+  // Send command to skip to the next file (backend is waiting after processing each file)
+  const skipToNextFile = useCallback(() => {
+    const payload: ControlCommand = {
+      command: "NEXT_FILE",
+      session_id: sessionId!,
+    };
 
-        let fileStatus = rs.status;
+    sendJson(payload);
+    processNextFile();
+  }, [sessionId, processNextFile]);
 
-        if (
-          (alg === "AES" && rs.rsa.finished) ||
-          (alg === "RSA" && rs.aes.finished)
-        ) {
-          fileStatus = "completed";
-        }
-
-        let algorithmStatus = "processing";
-
-        if (alg === "AES" && rs.aes.finished) {
-          algorithmStatus = "completed";
-        } else if (alg === "RSA" && rs.rsa.finished) {
-          algorithmStatus = "completed";
-        } else if (status === "skipped") {
-          algorithmStatus = "skipped";
-        }
-
-        return {
-          ...rs,
-          status: fileStatus,
-          [alg.toLowerCase()]: {
-            ...rs[alg.toLowerCase() as "aes" | "rsa"],
-            finished: true,
-            downloadUrl: url,
-            time,
-            status: algorithmStatus,
-            progress:
-              algorithmStatus === "completed"
-                ? 100
-                : rs[alg.toLowerCase() as "aes" | "rsa"].progress,
-          },
-        };
-      }),
-    );
-  };
-
-  const initializeSession = (
-    sessId: string,
-    files: UploadedFile[],
-    config: any,
-  ) => {
-    setSessionId(sessId);
-
-    setFileQueue(files);
-
-    setRaceState(
-      files.map((file) => ({
-        fileId: file.id,
-        fileName: file.name,
-        fileSize: file.size,
-        status: "pending",
-        aes: { progress: 0, cpu: 0, throughput: 0, finished: false },
-        rsa: { progress: 0, cpu: 0, throughput: 0, finished: false },
-      })),
-    );
-
-    configRef.current = config;
-
+  const resetRace = useCallback(() => {
+    setIsRunning(false);
+    setSessionId(null);
+    setBatchSummary(null);
+    setRaceState([]);
+    setFileQueue([]);
     setCurrentFileIndex(-1);
     setHasSentStartedCommand(false);
-    setIsRunning(false);
-    setBatchSummary(null);
-  };
+    disconnect();
+  }, []);
 
-  const skipRsa = () => {
+  const skipRsa = useCallback(() => {
     setRaceState((prev) =>
       prev.map((rs, index) => {
         if (index !== currentFileIndex) return rs;
@@ -317,52 +325,24 @@ export const CryptoProcessProvider = ({
     setIsFileProcessed(true);
 
     skipToNextFile();
-  };
+  }, [currentFileIndex]);
 
-  // Process the next file in the queue
-  const processNextFile = () => {
-    const index = currentFileIndex + 1;
-
-    if (index >= fileQueue.length) return;
-
-    setCurrentFileIndex(index);
-    setIsFileProcessed(false);
-
+  const completeProcessedFile = useCallback((fileId: string) => {
     setRaceState((prev) =>
-      prev.map((rs, rsIndex) => {
-        if (rsIndex !== index) return rs;
+      prev.map((rs) => {
+        if (rs.fileId !== fileId) return rs;
+
+        if (rs.status === "skipped") return rs;
 
         return {
           ...rs,
-          status: "processing",
+          status: "completed",
         };
       }),
     );
-  };
+  }, []);
 
-  // Send command to skip to the next file (backend is waiting after processing each file)
-  const skipToNextFile = () => {
-    const payload: ControlCommand = {
-      command: "NEXT_FILE",
-      session_id: sessionId!,
-    };
-
-    sendJson(payload);
-    processNextFile();
-  };
-
-  const resetRace = () => {
-    setIsRunning(false);
-    setSessionId(null);
-    setBatchSummary(null);
-    setRaceState([]);
-    setFileQueue([]);
-    setCurrentFileIndex(-1);
-    setHasSentStartedCommand(false);
-    disconnect();
-  };
-
-  const stopAll = () => {
+  const stopAll = useCallback(() => {
     if (sessionId) {
       const payload: ControlCommand = {
         command: "STOP_ALL",
@@ -373,40 +353,62 @@ export const CryptoProcessProvider = ({
     }
 
     resetRace();
-  };
+  }, [sessionId]);
 
-  const setCurrentlyDisplayedFile = (fileId: string) => {
-    const foundFileIndex = raceState.findIndex((f) => f.fileId === fileId);
-    if (foundFileIndex === -1) return;
+  const setCurrentlyDisplayedFile = useCallback(
+    (fileId: string) => {
+      const foundFileIndex = raceState.findIndex((f) => f.fileId === fileId);
+      if (foundFileIndex === -1) return;
 
-    setCurrentFileIndex(foundFileIndex);
-  };
+      setCurrentFileIndex(foundFileIndex);
+    },
+    [raceState],
+  );
+
+  const contextValue = useMemo(
+    () => ({
+      config: configRef.current,
+      isSessionInitialized,
+      batchSummary,
+      isFileProcessed,
+      fileQueue: raceState,
+      isConnected,
+      isRunning,
+      currentFile,
+      currentFileIndex,
+      queueProgress: {
+        current: currentFileIndex + 1,
+        total: fileQueue.length,
+      },
+      initializeSession,
+      skipRsa,
+      stopAll,
+      resetRace,
+      setCurrentlyDisplayedFile,
+      skipToNextFile,
+      disconnect,
+    }),
+    [
+      isSessionInitialized,
+      batchSummary,
+      isFileProcessed,
+      raceState,
+      isConnected,
+      isRunning,
+      currentFile,
+      currentFileIndex,
+      fileQueue.length,
+      initializeSession,
+      skipRsa,
+      stopAll,
+      resetRace,
+      setCurrentlyDisplayedFile,
+      skipToNextFile,
+    ],
+  );
 
   return (
-    <CryptoContext.Provider
-      value={{
-        config: configRef.current,
-        isSessionInitialized,
-        batchSummary,
-        isFileProcessed,
-        fileQueue: raceState,
-        isConnected,
-        isRunning,
-        currentFile,
-        currentFileIndex,
-        queueProgress: {
-          current: currentFileIndex + 1,
-          total: fileQueue.length,
-        },
-        initializeSession,
-        skipRsa,
-        stopAll,
-        resetRace,
-        setCurrentlyDisplayedFile,
-        skipToNextFile,
-        disconnect,
-      }}
-    >
+    <CryptoContext.Provider value={contextValue}>
       {children}
     </CryptoContext.Provider>
   );
